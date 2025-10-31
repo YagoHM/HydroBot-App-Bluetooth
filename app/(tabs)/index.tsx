@@ -1,98 +1,223 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useBluetooth } from '../../context/BluetoothContext';
+import { Device } from 'react-native-ble-plx';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const { devices, isScanning, startScan, isConnected, device, connect, disconnect } = useBluetooth();
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const renderDevice = ({ item }: { item: Device }) => (
+    <TouchableOpacity style={styles.deviceCard} onPress={() => connect(item)}>
+      <View style={styles.deviceInfo}>
+        <Ionicons name="bluetooth" size={32} color="#DC2626" />
+        <View style={styles.deviceText}>
+          <Text style={styles.deviceName}>{item.name || 'Dispositivo Desconhecido'}</Text>
+          <Text style={styles.deviceId}>{item.id}</Text>
+        </View>
+      </View>
+      <Ionicons name="chevron-forward" size={24} color="#9CA3AF" />
+    </TouchableOpacity>
+  );
+
+  return (
+    <View style={styles.container}>
+      {isConnected ? (
+        <View style={styles.connectedContainer}>
+          <View style={styles.connectedCard}>
+            <Ionicons name="checkmark-circle" size={64} color="#10B981" />
+            <Text style={styles.connectedTitle}>Conectado</Text>
+            <Text style={styles.connectedName}>{device?.name}</Text>
+            <Text style={styles.connectedSubtext}>HydroBot está online e pronto!</Text>
+            <TouchableOpacity style={styles.disconnectButton} onPress={disconnect}>
+              <Ionicons name="close-circle" size={20} color="#fff" />
+              <Text style={styles.disconnectText}>Desconectar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
+        <>
+          <View style={styles.header}>
+            <Text style={styles.title}>Dispositivos Bluetooth</Text>
+            <Text style={styles.subtitle}>
+              {isScanning ? 'Procurando dispositivos...' : 'Busque por HC-05 ou HC-06'}
+            </Text>
+          </View>
+
+          <FlatList
+            data={devices}
+            keyExtractor={(item) => item.id}
+            renderItem={renderDevice}
+            contentContainerStyle={styles.list}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Ionicons name="bluetooth-outline" size={64} color="#D1D5DB" />
+                <Text style={styles.emptyText}>
+                  {isScanning ? 'Buscando...' : 'Nenhum dispositivo encontrado'}
+                </Text>
+              </View>
+            }
+          />
+
+          <TouchableOpacity
+            style={[styles.scanButton, isScanning && styles.scanButtonDisabled]}
+            onPress={startScan}
+            disabled={isScanning}
+          >
+            {isScanning ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <Ionicons name="search" size={24} color="#fff" />
+                <Text style={styles.scanButtonText}>Buscar Dispositivos</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  header: {
+    padding: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  list: {
+    padding: 16,
+  },
+  deviceCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  deviceInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  deviceText: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  deviceName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  deviceId: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#9CA3AF',
+    marginTop: 12,
+  },
+  scanButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#DC2626',
+    margin: 16,
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  scanButtonDisabled: {
+    backgroundColor: '#9CA3AF',
+  },
+  scanButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  connectedContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  connectedCard: {
+    backgroundColor: '#fff',
+    padding: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+    width: '100%',
+    maxWidth: 350,
+  },
+  connectedTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#10B981',
+    marginTop: 16,
+  },
+  connectedName: {
+    fontSize: 20,
+    color: '#111827',
+    marginTop: 8,
+    fontWeight: '600',
+  },
+  connectedSubtext: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  disconnectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 24,
+  },
+  disconnectText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });

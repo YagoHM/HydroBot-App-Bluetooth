@@ -1,24 +1,76 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import { Alert, TouchableOpacity } from 'react-native';
+import { BluetoothProvider, useBluetooth } from '../context/BluetoothContext';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+// Componente do botão de reiniciar (precisa estar dentro do Provider)
+function RestartButton() {
+  const { restartApp } = useBluetooth();
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
-
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const handleRestart = () => {
+    Alert.alert(
+      'Reiniciar App',
+      'Tem certeza que deseja reiniciar o aplicativo?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Reiniciar',
+          onPress: () => restartApp(),
+          style: 'destructive',
+        },
+      ]
+    );
+  };
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+    <TouchableOpacity
+      onPress={handleRestart}
+      style={{
+        marginRight: 15,
+        padding: 5,
+      }}
+    >
+      <Ionicons name="reload" size={24} color="#fff" />
+    </TouchableOpacity>
+  );
+}
+
+// Componente interno com acesso ao contexto
+function AppStack() {
+  return (
+    <>
+      <StatusBar style="light" />
+      <Stack
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: '#DC2626',
+          },
+          headerTintColor: '#fff',
+          headerTitleStyle: {
+            fontWeight: 'bold',
+          },
+          headerRight: () => <RestartButton />,
+        }}
+      >
+        <Stack.Screen 
+          name="(tabs)" 
+          options={{ 
+            headerShown: false,
+          }} 
+        />
       </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <BluetoothProvider>
+      <AppStack />
+    </BluetoothProvider>
   );
 }
