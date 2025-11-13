@@ -12,7 +12,6 @@ interface TelemetryData {
   speed: number;
   pwm_min: number;
   pwm_max: number;
-  // Novos campos dos sensores
   sensor_left: number;
   sensor_center: number;
   sensor_right: number;
@@ -58,7 +57,6 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const requestPermissions = async () => {
     if (Platform.OS === 'android') {
       if (Platform.Version >= 31) {
-        // Android 12+
         const granted = await PermissionsAndroid.requestMultiple([
           PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
           PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
@@ -66,7 +64,6 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         ]);
         return Object.values(granted).every(status => status === 'granted');
       } else {
-        // Android 11 ou inferior
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
         );
@@ -110,7 +107,6 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           speed: parsed.speed || 100,
           pwm_min: parsed.pwm_min || 180,
           pwm_max: parsed.pwm_max || 255,
-          // Novos campos dos sensores
           sensor_left: parsed.sensor_left || 0,
           sensor_center: parsed.sensor_center || 0,
           sensor_right: parsed.sensor_right || 0,
@@ -129,14 +125,12 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const startScan = async () => {
-    // Verificar permissões
     const hasPermission = await requestPermissions();
     if (!hasPermission) {
       Alert.alert('Erro', 'Permissões de Bluetooth negadas');
       return;
     }
 
-    // Verificar estado do Bluetooth
     const isBluetoothOn = await checkBluetoothState();
     if (!isBluetoothOn) return;
 
@@ -155,7 +149,6 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       if (scannedDevice && scannedDevice.name) {
         console.log('📱 Dispositivo encontrado:', scannedDevice.name, '| ID:', scannedDevice.id);
-        console.log('   RSSI:', scannedDevice.rssi);
         
         setDevices((prev) => {
           const exists = prev.find((d) => d.id === scannedDevice.id);
@@ -167,7 +160,6 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
     });
 
-    // Timeout de 10 segundos
     setTimeout(() => {
       console.log('⏰ Timeout do scan - parando...');
       bleManager.stopDeviceScan();
@@ -184,18 +176,16 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       console.log('🔗 Conectando ao dispositivo:', dev.name, '(', dev.id, ')');
       
-      // Conectar
       const connected = await dev.connect({ 
         timeout: 10000,
         requestMTU: 512 
       });
       console.log('✅ Conectado! Descobrindo serviços...');
       
-      // Descobrir serviços
       await connected.discoverAllServicesAndCharacteristics();
       console.log('✅ Serviços descobertos');
       
-      // Listar serviços encontrados (debug)
+      // Debug: listar serviços
       const services = await connected.services();
       console.log('📋 Serviços disponíveis:');
       for (const service of services) {
@@ -204,7 +194,8 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         for (const char of chars) {
           console.log('      >', char.uuid, '| Props:', {
             read: char.isReadable,
-            write: char.isWritableWithResponse || char.isWritableWithoutResponse,
+            write: char.isWritableWithResponse,
+            writeNoResp: char.isWritableWithoutResponse,
             notify: char.isNotifiable
           });
         }
@@ -213,10 +204,8 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setDevice(connected);
       setIsConnected(true);
 
-      // Monitorar característica TX (receber telemetria)
+      // Monitorar característica TX
       console.log('📡 Iniciando monitor de telemetria...');
-      console.log('   Serviço:', SERVICE_UUID);
-      console.log('   TX Char:', TX_CHAR_UUID);
       
       connected.monitorCharacteristicForService(
         SERVICE_UUID,
@@ -278,9 +267,16 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
 
     try {
+      // 🔧 SOLUÇÃO 1: Verificar se ainda está conectado
+      const stillConnected = await device.isConnected();
+      if (!stillConnected) {
+        console.log('⚠️ Dispositivo desconectado!');
+        setIsConnected(false);
+        Alert.alert('Erro', 'Dispositivo desconectado');
+        return;
+      }
+
       console.log('📤 Enviando comando:', command);
-      console.log('   Serviço:', SERVICE_UUID);
-      console.log('   RX Char:', RX_CHAR_UUID);
       
       // Adicionar quebra de linha
       const commandWithNewline = command + '\n';
@@ -288,26 +284,57 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       
       console.log('   Base64:', data.substring(0, 50));
       
-      await device.writeCharacteristicWithResponseForService(
-        SERVICE_UUID,
-        RX_CHAR_UUID,
-        data
-      );
+      // 🔧 SOLUÇÃO 2: Tentar writeWithoutResponse primeiro
+      try {
+        await device.writeCharacteristicWithoutResponseForService(
+          SERVICE_UUID,
+          RX_CHAR_UUID,
+          data
+        );
+        console.log('✅ Comando enviado (writeWithoutResponse)');
+        return;
+      } catch (err1: any) {
+        console.log('⚠️ writeWithoutResponse falhou, tentando writeWithResponse...');
+        
+        // 🔧 SOLUÇÃO 3: Fallback para writeWithResponse
+        try {
+          await device.writeCharacteristicWithResponseForService(
+            SERVICE_UUID,
+            RX_CHAR_UUID,
+            data
+          );
+          console.log('✅ Comando enviado (writeWithResponse)');
+          return;
+        } catch (err2: any) {
+          throw err2; // Propaga o erro final
+        }
+      }
       
-      console.log('✅ Comando enviado com sucesso!');
     } catch (error: any) {
       console.error('❌ Erro ao enviar comando:', error);
       console.error('   Mensagem:', error.message);
       console.error('   Código:', error.errorCode);
-      Alert.alert('Erro', 'Falha ao enviar comando: ' + error.message);
+      console.error('   Reason:', error.reason);
+      
+      // 🔧 SOLUÇÃO 4: Verificar se perdeu conexão
+      try {
+        const stillConnected = await device.isConnected();
+        if (!stillConnected) {
+          setIsConnected(false);
+          Alert.alert('Conexão Perdida', 'O dispositivo foi desconectado. Reconecte e tente novamente.');
+          return;
+        }
+      } catch (checkError) {
+        console.error('Erro ao verificar conexão:', checkError);
+      }
+      
+      Alert.alert('Erro', 'Falha ao enviar comando. Tente reconectar o dispositivo.');
     }
   };
 
   useEffect(() => {
-    // Verificar estado inicial do Bluetooth
     checkBluetoothState();
     
-    // Subscrever mudanças de estado
     const subscription = bleManager.onStateChange((state) => {
       console.log('📶 Estado do Bluetooth mudou para:', state);
       if (state === BleState.PoweredOff) {
