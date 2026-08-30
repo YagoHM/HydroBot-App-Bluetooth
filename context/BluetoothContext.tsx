@@ -7,8 +7,9 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Alert, DevSettings, PermissionsAndroid, Platform } from "react-native";
+import { Alert, PermissionsAndroid, Platform } from "react-native";
 import { BleManager, State as BleState, Device } from "react-native-ble-plx";
+import * as Updates from "expo-updates";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -101,7 +102,7 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({
   const [telemetry, setTelemetry] = useState<TelemetryData | null>(null);
   const [devices, setDevices] = useState<Device[]>([]);
   const [isScanning, setIsScanning] = useState(false);
-  const [isMockMode, setIsMockMode] = useState(false);
+  const [isMockMode, setIsMockMode] = useState(true);
   const [bleReady, setBleReady] = useState(false); // evita checar BLE antes de saber o modo
 
   const mockTelRef = useRef<TelemetryData>({ ...MOCK_BASE });
@@ -111,7 +112,8 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     AsyncStorage.getItem(MOCK_MODE_KEY).then((val) => {
-      if (val === "true") setIsMockMode(true);
+      // padrão é simulação ativa; só desativa se o usuário explicitamente salvou "false"
+      setIsMockMode(val === "false" ? false : true);
       setBleReady(true); // só inicializa BLE depois de saber o modo
     });
   }, []);
@@ -182,8 +184,20 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // ─── Restart app ──────────────────────────────────────────────────────────
 
-  const restartApp = () => {
-    DevSettings.reload();
+  const restartApp = async () => {
+    try {
+      await Updates.reloadAsync();
+    } catch {
+      // fallback: reseta estado sem fechar o app
+      setDevice(null);
+      setIsConnected(false);
+      setTelemetry(null);
+      setDevices([]);
+      if (mockIntervalRef.current) {
+        clearInterval(mockIntervalRef.current);
+        mockIntervalRef.current = null;
+      }
+    }
   };
 
   // ─── BLE real: helpers ────────────────────────────────────────────────────
@@ -269,14 +283,20 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({
       // Telemetria com ruído leve para simular leituras reais
       mockIntervalRef.current = setInterval(() => {
         const t = mockTelRef.current;
+        const sensor_left = Math.max(0, t.sensor_left + (Math.random() * 10 - 5));
+        const sensor_center = Math.max(
+          0,
+          t.sensor_center + (Math.random() * 10 - 5),
+        );
+        const sensor_right = Math.max(0, t.sensor_right + (Math.random() * 10 - 5));
         mockTelRef.current = {
           ...t,
-          sensor_left: Math.max(0, t.sensor_left + (Math.random() * 10 - 5)),
-          sensor_center: Math.max(
-            0,
-            t.sensor_center + (Math.random() * 10 - 5),
-          ),
-          sensor_right: Math.max(0, t.sensor_right + (Math.random() * 10 - 5)),
+          sensor_left,
+          sensor_center,
+          sensor_right,
+          delta_left: Math.abs(sensor_left - t.base_left),
+          delta_center: Math.abs(sensor_center - t.base_center),
+          delta_right: Math.abs(sensor_right - t.base_right),
           intensity: Math.floor(Math.random() * (t.fire ? 500 : 80)),
         };
         setTelemetry({ ...mockTelRef.current });
@@ -322,10 +342,23 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({
       PUMP_OFF: { pump: 0 },
       AUTO: { mode: "AUTO" },
       MANUAL: { mode: "MANUAL" },
+      MODE_AUTO: { mode: "AUTO" },
+      MODE_MANUAL: { mode: "MANUAL" },
       FIRE_SIM: { fire: true, intensity: 480 }, // simula fogo para testar UI
       FIRE_STOP: { fire: false, intensity: 0 },
     };
     if (boolMap[cmd]) update(boolMap[cmd]);
+
+    if (cmd === "CALIBRATE") {
+      const t = mockTelRef.current;
+      update({
+        base_left: Math.round(t.sensor_left),
+        base_center: Math.round(t.sensor_center),
+        base_right: Math.round(t.sensor_right),
+        calibrated: true,
+      });
+      Alert.alert("✅ Calibrado", "Sensores calibrados (simulação)");
+    }
   };
 
   // ─── API pública ──────────────────────────────────────────────────────────

@@ -11,7 +11,7 @@ import {
 import { useBluetooth } from '../../context/BluetoothContext';
 
 export default function ControlScreen() {
-  const { isConnected, sendCommand, telemetry } = useBluetooth();
+  const { isConnected, sendCommand, telemetry, isMockMode } = useBluetooth();
   const [pumpActive, setPumpActive] = useState(false);
 
   useEffect(() => {
@@ -21,7 +21,7 @@ export default function ControlScreen() {
   }, [telemetry]);
 
   const handleCommand = async (cmd: string, description: string) => {
-    if (!isConnected) {
+    if (!isConnected && !isMockMode) {
       Alert.alert('Erro', 'Conecte-se ao HydroBot primeiro');
       return;
     }
@@ -29,7 +29,7 @@ export default function ControlScreen() {
   };
 
   const toggleMode = async () => {
-    if (!isConnected) {
+    if (!isConnected && !isMockMode) {
       Alert.alert('Erro', 'Conecte-se ao HydroBot primeiro');
       return;
     }
@@ -43,7 +43,7 @@ export default function ControlScreen() {
   };
 
   const togglePump = async () => {
-    if (!isConnected) {
+    if (!isConnected && !isMockMode) {
       Alert.alert('Erro', 'Conecte-se ao HydroBot primeiro');
       return;
     }
@@ -99,7 +99,7 @@ export default function ControlScreen() {
                 telemetry?.mode === 'AUTO' && styles.modeButtonActive
               ]}
               onPress={toggleMode}
-              disabled={!isConnected}
+              disabled={!isConnected && !isMockMode}
             >
               <Text style={[
                 styles.modeButtonText,
@@ -123,7 +123,7 @@ export default function ControlScreen() {
                   style={styles.directionButton}
                   onPressIn={() => handleCommand('FWD', 'Frente')}
                   onPressOut={() => handleCommand('STOP', 'Parar')}
-                  disabled={!isConnected}
+                  disabled={!isConnected && !isMockMode}
                 >
                   <Ionicons name="arrow-up" size={32} color="#fff" />
                 </TouchableOpacity>
@@ -135,7 +135,7 @@ export default function ControlScreen() {
                   style={styles.directionButton}
                   onPressIn={() => handleCommand('LEFT', 'Esquerda')}
                   onPressOut={() => handleCommand('STOP', 'Parar')}
-                  disabled={!isConnected}
+                  disabled={!isConnected && !isMockMode}
                 >
                   <Ionicons name="arrow-back" size={32} color="#fff" />
                 </TouchableOpacity>
@@ -143,7 +143,7 @@ export default function ControlScreen() {
                 <TouchableOpacity
                   style={[styles.directionButton, styles.stopButton]}
                   onPress={() => handleCommand('STOP', 'Parar')}
-                  disabled={!isConnected}
+                  disabled={!isConnected && !isMockMode}
                 >
                   <Ionicons name="stop" size={32} color="#fff" />
                 </TouchableOpacity>
@@ -152,7 +152,7 @@ export default function ControlScreen() {
                   style={styles.directionButton}
                   onPressIn={() => handleCommand('RIGHT', 'Direita')}
                   onPressOut={() => handleCommand('STOP', 'Parar')}
-                  disabled={!isConnected}
+                  disabled={!isConnected && !isMockMode}
                 >
                   <Ionicons name="arrow-forward" size={32} color="#fff" />
                 </TouchableOpacity>
@@ -164,7 +164,7 @@ export default function ControlScreen() {
                   style={styles.directionButton}
                   onPressIn={() => handleCommand('BACK', 'Trás')}
                   onPressOut={() => handleCommand('STOP', 'Parar')}
-                  disabled={!isConnected}
+                  disabled={!isConnected && !isMockMode}
                 >
                   <Ionicons name="arrow-down" size={32} color="#fff" />
                 </TouchableOpacity>
@@ -199,7 +199,7 @@ export default function ControlScreen() {
             <TouchableOpacity
               style={[styles.pumpButton, pumpActive && styles.pumpButtonActive]}
               onPress={togglePump}
-              disabled={!isConnected || !isManualMode}
+              disabled={(!isConnected && !isMockMode) || !isManualMode}
             >
               <Ionicons 
                 name={pumpActive ? 'pause' : 'play'} 
@@ -227,7 +227,7 @@ export default function ControlScreen() {
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => handleCommand('CALIBRATE', 'Calibrar')}
-            disabled={!isConnected}
+            disabled={!isConnected && !isMockMode}
           >
             <Ionicons name="settings-outline" size={24} color="#DC2626" />
             <Text style={styles.actionButtonText}>Calibrar Sensores</Text>
@@ -240,7 +240,7 @@ export default function ControlScreen() {
               handleCommand('PUMP_OFF', 'Desligar bomba');
               Alert.alert('Emergência', 'Todos os sistemas desligados!');
             }}
-            disabled={!isConnected}
+            disabled={!isConnected && !isMockMode}
           >
             <Ionicons name="alert-circle" size={24} color="#fff" />
             <Text style={[styles.actionButtonText, { color: '#fff' }]}>

@@ -37,7 +37,7 @@ export default function SettingsScreen() {
     value: number,
     name: string,
   ) => {
-    if (!isConnected) {
+    if (!isConnected && !isMockMode) {
       Alert.alert("Erro", "Conecte-se ao HydroBot primeiro");
       return;
     }
@@ -169,7 +169,7 @@ export default function SettingsScreen() {
               minimumTrackTintColor="#DC2626"
               maximumTrackTintColor="#D1D5DB"
               thumbTintColor="#DC2626"
-              disabled={!isConnected}
+              disabled={!isConnected && !isMockMode}
             />
             <View style={styles.sliderLabels}>
               <Text style={styles.sliderLabel}>30%</Text>
@@ -205,7 +205,7 @@ export default function SettingsScreen() {
               minimumTrackTintColor="#3B82F6"
               maximumTrackTintColor="#D1D5DB"
               thumbTintColor="#3B82F6"
-              disabled={!isConnected}
+              disabled={!isConnected && !isMockMode}
             />
             <View style={styles.sliderLabels}>
               <Text style={styles.sliderLabel}>150</Text>
@@ -241,7 +241,7 @@ export default function SettingsScreen() {
               minimumTrackTintColor="#3B82F6"
               maximumTrackTintColor="#D1D5DB"
               thumbTintColor="#3B82F6"
-              disabled={!isConnected}
+              disabled={!isConnected && !isMockMode}
             />
             <View style={styles.sliderLabels}>
               <Text style={styles.sliderLabel}>180</Text>
@@ -267,12 +267,12 @@ export default function SettingsScreen() {
               value={fireThresh.toString()}
               onChangeText={(text) => setFireThresh(parseInt(text) || 50)}
               keyboardType="numeric"
-              editable={isConnected}
+              editable={isConnected || isMockMode}
             />
             <TouchableOpacity
               style={[
                 styles.applyButton,
-                !isConnected && styles.applyButtonDisabled,
+                !isConnected && !isMockMode && styles.applyButtonDisabled,
               ]}
               onPress={() =>
                 handleSaveSetting(
@@ -281,7 +281,7 @@ export default function SettingsScreen() {
                   "Limiar de Detecção",
                 )
               }
-              disabled={!isConnected}
+              disabled={!isConnected && !isMockMode}
             >
               <Text style={styles.applyButtonText}>Aplicar</Text>
             </TouchableOpacity>
@@ -302,12 +302,12 @@ export default function SettingsScreen() {
               value={fireDanger.toString()}
               onChangeText={(text) => setFireDanger(parseInt(text) || 350)}
               keyboardType="numeric"
-              editable={isConnected}
+              editable={isConnected || isMockMode}
             />
             <TouchableOpacity
               style={[
                 styles.applyButton,
-                !isConnected && styles.applyButtonDisabled,
+                !isConnected && !isMockMode && styles.applyButtonDisabled,
               ]}
               onPress={() =>
                 handleSaveSetting(
@@ -316,7 +316,7 @@ export default function SettingsScreen() {
                   "Intensidade de Perigo",
                 )
               }
-              disabled={!isConnected}
+              disabled={!isConnected && !isMockMode}
             >
               <Text style={styles.applyButtonText}>Aplicar</Text>
             </TouchableOpacity>
@@ -335,12 +335,12 @@ export default function SettingsScreen() {
               value={fireIdeal.toString()}
               onChangeText={(text) => setFireIdeal(parseInt(text) || 200)}
               keyboardType="numeric"
-              editable={isConnected}
+              editable={isConnected || isMockMode}
             />
             <TouchableOpacity
               style={[
                 styles.applyButton,
-                !isConnected && styles.applyButtonDisabled,
+                !isConnected && !isMockMode && styles.applyButtonDisabled,
               ]}
               onPress={() =>
                 handleSaveSetting(
@@ -349,7 +349,7 @@ export default function SettingsScreen() {
                   "Distância Ideal",
                 )
               }
-              disabled={!isConnected}
+              disabled={!isConnected && !isMockMode}
             >
               <Text style={styles.applyButtonText}>Aplicar</Text>
             </TouchableOpacity>
@@ -363,7 +363,15 @@ export default function SettingsScreen() {
         <Text style={styles.sectionTitle}>Informações</Text>
 
         <View style={styles.card}>
-          <TouchableOpacity style={styles.infoRow}>
+          <TouchableOpacity
+            style={styles.infoRow}
+            onPress={() =>
+              Alert.alert(
+                "Sobre o HydroBot",
+                "HydroBot Arduino Controller\nVersão 1.0.0",
+              )
+            }
+          >
             <Ionicons name="information-circle" size={24} color="#DC2626" />
             <View style={styles.infoText}>
               <Text style={styles.infoTitle}>Sobre o HydroBot</Text>
