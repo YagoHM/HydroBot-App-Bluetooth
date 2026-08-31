@@ -1,42 +1,55 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-export const AUTH_KEY = '@hydrobot_authenticated';
+export interface RegisteredUser {
+  name: string;
+  email: string;
+  password: string;
+}
 
 interface AuthContextType {
-  isAuthenticated: boolean | null;
+  isAuthenticated: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
+  findUser: (email: string, password: string) => RegisteredUser | undefined;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const USERS_STORAGE_KEY = '@hydrobot/registered_users';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [users, setUsers] = useState<RegisteredUser[]>([]);
 
   useEffect(() => {
-    AsyncStorage.getItem(AUTH_KEY)
-      .then((val) => {
-        setIsAuthenticated(val === 'true');
-      })
-      .catch((err) => {
-        console.error('Falha ao ler estado de autenticação:', err);
-        setIsAuthenticated(false);
-      });
+    AsyncStorage.getItem(USERS_STORAGE_KEY).then((stored) => {
+      if (stored) {
+        setUsers(JSON.parse(stored));
+      }
+    });
   }, []);
 
   const login = async () => {
-    await AsyncStorage.setItem(AUTH_KEY, 'true');
     setIsAuthenticated(true);
   };
 
   const logout = async () => {
-    await AsyncStorage.removeItem(AUTH_KEY);
     setIsAuthenticated(false);
   };
 
+  const register = async (name: string, email: string, password: string) => {
+    const updatedUsers = [...users.filter((u) => u.email !== email), { name, email, password }];
+    setUsers(updatedUsers);
+    await AsyncStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(updatedUsers));
+  };
+
+  const findUser = (email: string, password: string) => {
+    return users.find((u) => u.email === email && u.password === password);
+  };
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, login, logout, register, findUser }}>
       {children}
     </AuthContext.Provider>
   );

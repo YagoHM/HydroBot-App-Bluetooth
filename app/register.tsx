@@ -14,36 +14,39 @@ import AppModal from '../components/AppModal';
 import { useAuth } from '../context/AuthContext';
 import { EMAIL_REGEX } from '../utils/validation';
 
-const APP_EMAIL = 'admin@hydrobot.com';
-const APP_PASSWORD = '1234';
-
-export default function LoginScreen() {
+export default function RegisterScreen() {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [errorModalVisible, setErrorModalVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const { login, findUser } = useAuth();
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const { register } = useAuth();
 
   const showError = (message: string) => {
     setErrorMessage(message);
     setErrorModalVisible(true);
   };
 
-  const handleLogin = async () => {
+  const handleRegister = async () => {
+    if (!name.trim() || !email.trim() || !password || !confirmPassword) {
+      showError('Preencha todos os campos.');
+      return;
+    }
+
     if (!EMAIL_REGEX.test(email)) {
       showError('Formato de e-mail inválido.');
       return;
     }
 
-    const isDemoUser = email === APP_EMAIL && password === APP_PASSWORD;
-    const registeredUser = findUser(email, password);
-
-    if (!isDemoUser && !registeredUser) {
-      showError('E-mail ou senha incorretos.');
+    if (password !== confirmPassword) {
+      showError('As senhas não coincidem.');
       return;
     }
 
-    await login();
+    await register(name.trim(), email.trim(), password);
+    setSuccessModalVisible(true);
   };
 
   return (
@@ -52,9 +55,17 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.card}>
-        <Ionicons name="shield-checkmark" size={64} color="#DC2626" />
-        <Text style={styles.title}>HydroBot</Text>
-        <Text style={styles.subtitle}>Digite o e-mail e a senha para continuar</Text>
+        <Ionicons name="person-add" size={64} color="#DC2626" />
+        <Text style={styles.title}>Criar Conta</Text>
+        <Text style={styles.subtitle}>Preencha os dados para se cadastrar</Text>
+
+        <TextInput
+          style={styles.input}
+          placeholder="Nome Completo"
+          placeholderTextColor="#9CA3AF"
+          value={name}
+          onChangeText={setName}
+        />
 
         <TextInput
           style={styles.input}
@@ -73,23 +84,43 @@ export default function LoginScreen() {
           secureTextEntry
           value={password}
           onChangeText={setPassword}
-          onSubmitEditing={handleLogin}
         />
 
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Entrar</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Confirmar Senha"
+          placeholderTextColor="#9CA3AF"
+          secureTextEntry
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          onSubmitEditing={handleRegister}
+        />
+
+        <TouchableOpacity style={styles.button} onPress={handleRegister}>
+          <Text style={styles.buttonText}>Cadastrar</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => router.replace('/register')}>
-          <Text style={styles.link}>Não possui conta? Cadastre-se</Text>
+        <TouchableOpacity onPress={() => router.replace('/login')}>
+          <Text style={styles.link}>Já possui conta? Faça Login</Text>
         </TouchableOpacity>
       </View>
 
       <AppModal
         visible={errorModalVisible}
-        title="Erro de Autenticação"
+        title="Erro no Cadastro"
         message={errorMessage}
         onRequestClose={() => setErrorModalVisible(false)}
+      />
+
+      <AppModal
+        visible={successModalVisible}
+        title="Cadastro Realizado"
+        message="Usuário criado com sucesso!"
+        buttons={[{ text: 'OK', onPress: () => router.replace('/login') }]}
+        onRequestClose={() => {
+          setSuccessModalVisible(false);
+          router.replace('/login');
+        }}
       />
     </KeyboardAvoidingView>
   );
