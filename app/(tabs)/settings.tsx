@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { useEffect, useState } from "react";
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Switch,
@@ -11,7 +10,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import AppModal, { AppModalButton } from "../../components/AppModal";
 import { useBluetooth } from "../../context/BluetoothContext";
+
+interface ModalState {
+  title: string;
+  message?: string;
+  buttons?: AppModalButton[];
+}
 
 export default function SettingsScreen() {
   const { isConnected, sendCommand, telemetry, isMockMode, toggleMockMode } =
@@ -20,9 +26,13 @@ export default function SettingsScreen() {
   const [speed, setSpeed] = useState(100);
   const [pwmMin, setPwmMin] = useState(180);
   const [pwmMax, setPwmMax] = useState(255);
-  const [fireThresh, setFireThresh] = useState(50);
-  const [fireDanger, setFireDanger] = useState(350);
-  const [fireIdeal, setFireIdeal] = useState(200);
+  const [fireThreshText, setFireThreshText] = useState("50");
+  const [fireThreshTouched, setFireThreshTouched] = useState(false);
+  const [fireDangerText, setFireDangerText] = useState("350");
+  const [fireDangerTouched, setFireDangerTouched] = useState(false);
+  const [fireIdealText, setFireIdealText] = useState("200");
+  const [fireIdealTouched, setFireIdealTouched] = useState(false);
+  const [modal, setModal] = useState<ModalState | null>(null);
 
   useEffect(() => {
     if (telemetry) {
@@ -38,24 +48,50 @@ export default function SettingsScreen() {
     name: string,
   ) => {
     if (!isConnected && !isMockMode) {
-      Alert.alert("Erro", "Conecte-se ao HydroBot primeiro");
+      setModal({ title: "Erro", message: "Conecte-se ao HydroBot primeiro" });
       return;
     }
     await sendCommand(`${command}:${value}`);
-    Alert.alert("Sucesso", `${name} atualizado para ${value}`);
+    setModal({ title: "Sucesso", message: `${name} atualizado para ${value}` });
   };
 
+  const fireThreshNum = parseInt(fireThreshText, 10);
+  const isFireThreshValid =
+    !isNaN(fireThreshNum) && fireThreshNum >= 20 && fireThreshNum <= 200;
+
+  const fireDangerNum = parseInt(fireDangerText, 10);
+  const isFireDangerValid =
+    !isNaN(fireDangerNum) && fireDangerNum >= 200 && fireDangerNum <= 600;
+
+  const fireIdealNum = parseInt(fireIdealText, 10);
+  const isFireIdealValid =
+    !isNaN(fireIdealNum) && fireIdealNum >= 100 && fireIdealNum <= 400;
+
   const handleToggleMock = () => {
-    Alert.alert(
-      isMockMode ? "Desativar Simulação?" : "Ativar Simulação?",
-      isMockMode
+    const activating = !isMockMode;
+    setModal({
+      title: isMockMode ? "Desativar Simulação?" : "Ativar Simulação?",
+      message: isMockMode
         ? "O app voltará a usar Bluetooth real. A conexão atual será encerrada."
         : "O app usará dados simulados. Nenhum Arduino é necessário.",
-      [
+      buttons: [
         { text: "Cancelar", style: "cancel" },
-        { text: "Confirmar", onPress: toggleMockMode },
+        {
+          text: "Confirmar",
+          onPress: async () => {
+            await toggleMockMode();
+            setModal({
+              title: activating
+                ? "Modo Simulação Ativado"
+                : "Modo Real Ativado",
+              message: activating
+                ? "Dados simulados — nenhum Arduino necessário."
+                : "Usando Bluetooth real.",
+            });
+          },
+        },
       ],
-    );
+    });
   };
 
   return (
@@ -65,23 +101,35 @@ export default function SettingsScreen() {
         <View
           style={[
             styles.statusCard,
-            !isConnected && styles.statusCardDisconnected,
+            isMockMode
+              ? styles.statusCardMock
+              : !isConnected && styles.statusCardDisconnected,
           ]}
         >
           <Ionicons
-            name={isConnected ? "checkmark-circle" : "close-circle"}
+            name={
+              isMockMode
+                ? "flask"
+                : isConnected
+                  ? "checkmark-circle"
+                  : "close-circle"
+            }
             size={24}
-            color={isConnected ? "#10B981" : "#EF4444"}
+            color={isMockMode ? "#D97706" : isConnected ? "#10B981" : "#EF4444"}
           />
           <Text
             style={[
               styles.statusText,
-              !isConnected && styles.statusTextDisconnected,
+              isMockMode
+                ? styles.statusTextMock
+                : !isConnected && styles.statusTextDisconnected,
             ]}
           >
-            {isConnected
-              ? `HydroBot Conectado${isMockMode ? " (simulação)" : ""}`
-              : "Desconectado"}
+            {isMockMode
+              ? "Modo Simulação Ativo"
+              : isConnected
+                ? "HydroBot Conectado"
+                : "Desconectado"}
           </Text>
         </View>
 
@@ -98,11 +146,11 @@ export default function SettingsScreen() {
               />
             </View>
             <View style={styles.mockText}>
-              <Text style={styles.settingTitle}>Modo Simulação</Text>
+              <Text style={styles.mockTitle}>Modo Simulação</Text>
               <Text style={styles.mockSubtitle}>
                 {isMockMode
-                  ? "🧪 Ativo — dados gerados pelo app"
-                  : "📡 Inativo — usando Bluetooth real"}
+                  ? "Ativo — dados gerados pelo app"
+                  : "Inativo — usando Bluetooth real"}
               </Text>
             </View>
             <Switch
@@ -125,14 +173,27 @@ export default function SettingsScreen() {
               <View style={styles.mockButtons}>
                 <TouchableOpacity
                   style={styles.mockBtn}
-                  onPress={() => sendCommand("FIRE_SIM")}
+                  onPress={() => {
+                    sendCommand("FIRE_SIM");
+                    setModal({
+                      title: "Fogo Simulado Ativo",
+                      message:
+                        "O sensor detectou fogo virtual. Acesse a aba 'Monitor' para visualizar a telemetria.",
+                    });
+                  }}
                 >
                   <Ionicons name="flame" size={16} color="#fff" />
                   <Text style={styles.mockBtnText}>Simular Fogo</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.mockBtn, styles.mockBtnSecondary]}
-                  onPress={() => sendCommand("FIRE_STOP")}
+                  onPress={() => {
+                    sendCommand("FIRE_STOP");
+                    setModal({
+                      title: "Simulação Parada",
+                      message: "A simulação de fogo foi cancelada.",
+                    });
+                  }}
                 >
                   <Ionicons name="water" size={16} color="#DC2626" />
                   <Text
@@ -263,32 +324,46 @@ export default function SettingsScreen() {
           </View>
           <View style={styles.inputRow}>
             <TextInput
-              style={styles.input}
-              value={fireThresh.toString()}
-              onChangeText={(text) => setFireThresh(parseInt(text) || 50)}
+              style={[
+                styles.input,
+                fireThreshTouched && !isFireThreshValid && styles.inputError,
+              ]}
+              value={fireThreshText}
+              onChangeText={setFireThreshText}
+              onBlur={() => setFireThreshTouched(true)}
               keyboardType="numeric"
               editable={isConnected || isMockMode}
             />
             <TouchableOpacity
               style={[
                 styles.applyButton,
-                !isConnected && !isMockMode && styles.applyButtonDisabled,
+                (!isConnected && !isMockMode) || !isFireThreshValid
+                  ? styles.applyButtonDisabled
+                  : null,
               ]}
-              onPress={() =>
+              onPress={() => {
+                setFireThreshTouched(true);
+                if (!isFireThreshValid) return;
                 handleSaveSetting(
                   "SET_FIRE_THRESH",
-                  fireThresh,
+                  fireThreshNum,
                   "Limiar de Detecção",
-                )
-              }
-              disabled={!isConnected && !isMockMode}
+                );
+              }}
+              disabled={(!isConnected && !isMockMode) || !isFireThreshValid}
             >
               <Text style={styles.applyButtonText}>Aplicar</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.inputDescription}>
-            Sensibilidade para detectar fogo (20–200)
-          </Text>
+          {fireThreshTouched && !isFireThreshValid ? (
+            <Text style={styles.inputErrorText}>
+              O valor deve estar entre 20 e 200
+            </Text>
+          ) : (
+            <Text style={styles.inputDescription}>
+              Sensibilidade para detectar fogo (20–200)
+            </Text>
+          )}
         </View>
 
         <View style={styles.card}>
@@ -298,30 +373,43 @@ export default function SettingsScreen() {
           </View>
           <View style={styles.inputRow}>
             <TextInput
-              style={styles.input}
-              value={fireDanger.toString()}
-              onChangeText={(text) => setFireDanger(parseInt(text) || 350)}
+              style={[
+                styles.input,
+                fireDangerTouched && !isFireDangerValid && styles.inputError,
+              ]}
+              value={fireDangerText}
+              onChangeText={setFireDangerText}
               keyboardType="numeric"
               editable={isConnected || isMockMode}
             />
             <TouchableOpacity
               style={[
                 styles.applyButton,
-                !isConnected && !isMockMode && styles.applyButtonDisabled,
+                (!isConnected && !isMockMode) || !isFireDangerValid
+                  ? styles.applyButtonDisabled
+                  : null,
               ]}
-              onPress={() =>
+              onPress={() => {
+                setFireDangerTouched(true);
+                if (!isFireDangerValid) return;
                 handleSaveSetting(
                   "SET_FIRE_DANGER",
-                  fireDanger,
+                  fireDangerNum,
                   "Intensidade de Perigo",
-                )
-              }
-              disabled={!isConnected && !isMockMode}
+                );
+              }}
+              disabled={(!isConnected && !isMockMode) || !isFireDangerValid}
             >
               <Text style={styles.applyButtonText}>Aplicar</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.inputDescription}>Quando recuar (200–600)</Text>
+          {fireDangerTouched && !isFireDangerValid ? (
+            <Text style={styles.inputErrorText}>
+              O valor deve estar entre 200 e 600
+            </Text>
+          ) : (
+            <Text style={styles.inputDescription}>Quando recuar (200–600)</Text>
+          )}
         </View>
 
         <View style={styles.card}>
@@ -331,32 +419,45 @@ export default function SettingsScreen() {
           </View>
           <View style={styles.inputRow}>
             <TextInput
-              style={styles.input}
-              value={fireIdeal.toString()}
-              onChangeText={(text) => setFireIdeal(parseInt(text) || 200)}
+              style={[
+                styles.input,
+                fireIdealTouched && !isFireIdealValid && styles.inputError,
+              ]}
+              value={fireIdealText}
+              onChangeText={setFireIdealText}
               keyboardType="numeric"
               editable={isConnected || isMockMode}
             />
             <TouchableOpacity
               style={[
                 styles.applyButton,
-                !isConnected && !isMockMode && styles.applyButtonDisabled,
+                (!isConnected && !isMockMode) || !isFireIdealValid
+                  ? styles.applyButtonDisabled
+                  : null,
               ]}
-              onPress={() =>
+              onPress={() => {
+                setFireIdealTouched(true);
+                if (!isFireIdealValid) return;
                 handleSaveSetting(
                   "SET_FIRE_IDEAL",
-                  fireIdeal,
+                  fireIdealNum,
                   "Distância Ideal",
-                )
-              }
-              disabled={!isConnected && !isMockMode}
+                );
+              }}
+              disabled={(!isConnected && !isMockMode) || !isFireIdealValid}
             >
               <Text style={styles.applyButtonText}>Aplicar</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.inputDescription}>
-            Distância ideal para combater (100–400)
-          </Text>
+          {fireIdealTouched && !isFireIdealValid ? (
+            <Text style={styles.inputErrorText}>
+              O valor deve estar entre 100 e 400
+            </Text>
+          ) : (
+            <Text style={styles.inputDescription}>
+              Distância ideal para combater (100–400)
+            </Text>
+          )}
         </View>
 
         {/* ── INFORMAÇÕES ───────────────────────────────────────── */}
@@ -366,10 +467,10 @@ export default function SettingsScreen() {
           <TouchableOpacity
             style={styles.infoRow}
             onPress={() =>
-              Alert.alert(
-                "Sobre o HydroBot",
-                "HydroBot Arduino Controller\nVersão 1.0.0",
-              )
+              setModal({
+                title: "Sobre o HydroBot",
+                message: "Versão 1.0.0 - HydroBot Arduino Controller",
+              })
             }
           >
             <Ionicons name="information-circle" size={24} color="#DC2626" />
@@ -384,14 +485,15 @@ export default function SettingsScreen() {
           <TouchableOpacity
             style={styles.infoRow}
             onPress={() =>
-              Alert.alert(
-                "Ajuda",
-                "Comandos disponíveis:\n\n" +
+              setModal({
+                title: "Ajuda",
+                message:
+                  "Comandos disponíveis:\n\n" +
                   "• Modo Manual: Controle direto do robô\n" +
                   "• Modo Auto: Robô busca fogo automaticamente\n" +
                   "• Calibrar: Ajusta sensores de fogo\n" +
                   "• Parada de Emergência: Para tudo imediatamente",
-              )
+              })
             }
           >
             <Ionicons name="help-circle" size={24} color="#DC2626" />
@@ -406,10 +508,18 @@ export default function SettingsScreen() {
         <View style={styles.footer}>
           <Text style={styles.footerText}>HydroBot Arduino Controller</Text>
           <Text style={styles.footerSubtext}>
-            React Native + {isMockMode ? "Simulação 🧪" : "Bluetooth HC-05/06"}
+            React Native + {isMockMode ? "Simulação" : "Bluetooth HC-05/06"}
           </Text>
         </View>
       </View>
+
+      <AppModal
+        visible={modal !== null}
+        title={modal?.title ?? ""}
+        message={modal?.message}
+        buttons={modal?.buttons}
+        onRequestClose={() => setModal(null)}
+      />
     </ScrollView>
   );
 }
@@ -433,6 +543,9 @@ const styles = StyleSheet.create({
   statusCardDisconnected: {
     backgroundColor: "#FEE2E2",
   },
+  statusCardMock: {
+    backgroundColor: "#FEF3C7",
+  },
   statusText: {
     marginLeft: 12,
     fontSize: 16,
@@ -441,6 +554,9 @@ const styles = StyleSheet.create({
   },
   statusTextDisconnected: {
     color: "#991B1B",
+  },
+  statusTextMock: {
+    color: "#92400E",
   },
   sectionTitle: {
     fontSize: 14,
@@ -478,6 +594,11 @@ const styles = StyleSheet.create({
   },
   mockText: {
     flex: 1,
+  },
+  mockTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#111827",
   },
   mockSubtitle: {
     fontSize: 13,
@@ -600,6 +721,14 @@ const styles = StyleSheet.create({
   inputDescription: {
     fontSize: 13,
     color: "#6B7280",
+    marginTop: 8,
+  },
+  inputError: {
+    borderColor: "#EF4444",
+  },
+  inputErrorText: {
+    fontSize: 13,
+    color: "#EF4444",
     marginTop: 8,
   },
   infoRow: {

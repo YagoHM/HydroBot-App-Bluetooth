@@ -173,13 +173,6 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsMockMode(next);
 
     await AsyncStorage.setItem(MOCK_MODE_KEY, String(next));
-
-    Alert.alert(
-      next ? "🧪 Modo Simulação Ativado" : "📡 Modo Real Ativado",
-      next
-        ? "Dados simulados — nenhum Arduino necessário."
-        : "Usando Bluetooth real.",
-    );
   };
 
   // ─── Restart app ──────────────────────────────────────────────────────────

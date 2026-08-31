@@ -3,7 +3,8 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useBluetooth } from '../../context/BluetoothContext';
 
 export default function MonitorScreen() {
-  const { telemetry, isConnected } = useBluetooth();
+  const { telemetry, isConnected, isMockMode } = useBluetooth();
+  const showTelemetry = isConnected || isMockMode;
 
   const getWaterIcon = (level: number) => {
     if (level >= 60) return 'water';
@@ -48,7 +49,7 @@ export default function MonitorScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
-        {!isConnected ? (
+        {!showTelemetry ? (
           <View style={styles.disconnectedCard}>
             <Ionicons name="bluetooth-outline" size={64} color="#D1D5DB" />
             <Text style={styles.disconnectedTitle}>Não Conectado</Text>

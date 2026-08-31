@@ -98,6 +98,8 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: '#6B7280',
+    flexShrink: 1,
+    flexWrap: 'wrap',
   },
   list: {
     padding: 16,

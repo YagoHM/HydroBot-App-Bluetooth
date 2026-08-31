@@ -1,18 +1,26 @@
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import AppModal, { AppModalButton } from '../../components/AppModal';
 import { useBluetooth } from '../../context/BluetoothContext';
+
+interface ModalState {
+  title: string;
+  message?: string;
+  buttons?: AppModalButton[];
+}
 
 export default function ControlScreen() {
   const { isConnected, sendCommand, telemetry, isMockMode } = useBluetooth();
   const [pumpActive, setPumpActive] = useState(false);
+  const [modal, setModal] = useState<ModalState | null>(null);
 
   useEffect(() => {
     if (telemetry) {
@@ -22,7 +30,7 @@ export default function ControlScreen() {
 
   const handleCommand = async (cmd: string, description: string) => {
     if (!isConnected && !isMockMode) {
-      Alert.alert('Erro', 'Conecte-se ao HydroBot primeiro');
+      setModal({ title: 'Erro', message: 'Conecte-se ao HydroBot primeiro' });
       return;
     }
     await sendCommand(cmd);
@@ -30,26 +38,26 @@ export default function ControlScreen() {
 
   const toggleMode = async () => {
     if (!isConnected && !isMockMode) {
-      Alert.alert('Erro', 'Conecte-se ao HydroBot primeiro');
+      setModal({ title: 'Erro', message: 'Conecte-se ao HydroBot primeiro' });
       return;
     }
-    
+
     const isAuto = telemetry?.mode === 'AUTO';
     await sendCommand(isAuto ? 'MODE_MANUAL' : 'MODE_AUTO');
-    Alert.alert(
-      'Modo Alterado',
-      isAuto ? 'Modo Manual ativado' : 'Modo Automático ativado'
-    );
+    setModal({
+      title: 'Modo Alterado',
+      message: isAuto ? 'Modo Manual ativado' : 'Modo Automático ativado',
+    });
   };
 
   const togglePump = async () => {
     if (!isConnected && !isMockMode) {
-      Alert.alert('Erro', 'Conecte-se ao HydroBot primeiro');
+      setModal({ title: 'Erro', message: 'Conecte-se ao HydroBot primeiro' });
       return;
     }
 
     if (telemetry && telemetry.water <= 10) {
-      Alert.alert('Aviso', 'Nível de água muito baixo!');
+      setModal({ title: 'Aviso', message: 'Nível de água muito baixo!' });
       return;
     }
 
@@ -62,14 +70,27 @@ export default function ControlScreen() {
     <ScrollView style={styles.container}>
       <View style={styles.content}>
         {/* Status Bar */}
-        <View style={[styles.statusBar, !isConnected && styles.statusBarDisconnected]}>
-          <Ionicons 
-            name={isConnected ? 'radio-button-on' : 'radio-button-off'} 
-            size={20} 
-            color={isConnected ? '#10B981' : '#EF4444'} 
+        <View
+          style={[
+            styles.statusBar,
+            isMockMode
+              ? styles.statusBarMock
+              : !isConnected && styles.statusBarDisconnected,
+          ]}
+        >
+          <Ionicons
+            name={isMockMode ? 'flask' : isConnected ? 'radio-button-on' : 'radio-button-off'}
+            size={20}
+            color={isMockMode ? '#D97706' : isConnected ? '#10B981' : '#EF4444'}
           />
-          <Text style={styles.statusText}>
-            {isConnected ? 'Conectado' : 'Desconectado'}
+          <Text
+            style={[styles.statusText, isMockMode && styles.statusTextMock]}
+          >
+            {isMockMode
+              ? 'Modo Simulação Ativo'
+              : isConnected
+                ? 'Conectado'
+                : 'Desconectado'}
           </Text>
         </View>
 
@@ -226,10 +247,9 @@ export default function ControlScreen() {
           
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => handleCommand('CALIBRATE', 'Calibrar')}
-            disabled={!isConnected && !isMockMode}
+            onPress={() => router.push('/(tabs)/settings')}
           >
-            <Ionicons name="settings-outline" size={24} color="#DC2626" />
+            <Ionicons name="settings-outline" size={24} color="#111827" />
             <Text style={styles.actionButtonText}>Calibrar Sensores</Text>
           </TouchableOpacity>
 
@@ -238,7 +258,7 @@ export default function ControlScreen() {
             onPress={() => {
               handleCommand('STOP', 'Parada de Emergência');
               handleCommand('PUMP_OFF', 'Desligar bomba');
-              Alert.alert('Emergência', 'Todos os sistemas desligados!');
+              setModal({ title: 'Emergência', message: 'Todos os sistemas desligados!' });
             }}
             disabled={!isConnected && !isMockMode}
           >
@@ -249,6 +269,14 @@ export default function ControlScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      <AppModal
+        visible={modal !== null}
+        title={modal?.title ?? ''}
+        message={modal?.message}
+        buttons={modal?.buttons}
+        onRequestClose={() => setModal(null)}
+      />
     </ScrollView>
   );
 }
@@ -272,11 +300,17 @@ const styles = StyleSheet.create({
   statusBarDisconnected: {
     backgroundColor: '#FEE2E2',
   },
+  statusBarMock: {
+    backgroundColor: '#FEF3C7',
+  },
   statusText: {
     marginLeft: 8,
     fontSize: 14,
     fontWeight: '600',
     color: '#065F46',
+  },
+  statusTextMock: {
+    color: '#92400E',
   },
   card: {
     backgroundColor: '#fff',
@@ -426,6 +460,9 @@ const styles = StyleSheet.create({
   emergencyButton: {
     backgroundColor: '#991B1B',
     marginBottom: 0,
+  },
+  actionButtonDisabled: {
+    opacity: 0.5,
   },
   actionButtonText: {
     fontSize: 16,
