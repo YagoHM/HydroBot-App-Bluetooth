@@ -5,6 +5,11 @@
     "observed": "/control ::  | HydroBot | Digite o e-mail e a senha para continuar | Entrar | Não possui co"
   },
   {
+    "id": "M1",
+    "desc": "Foco volta ao botão Entrar após fechar o erro de login",
+    "observed": "foco antes: true / com o modal aberto saiu do elemento: true (BUTTON) / após fechar volta ao elemento: true (Entrar)"
+  },
+  {
     "id": "I3",
     "desc": "Monitor logo após login com simulação ativa (sem tocar em Conexão)",
     "observed": "Leituras SIMULADAS · geradas pelo app |  | Nível de Água (simulado) | 75% | Nível adequado |  | Detecção de Fogo |  |"
@@ -53,6 +58,21 @@
     "id": "I6",
     "desc": "Fundo do modal (padrão claro)",
     "observed": "rgb(255, 255, 255)"
+  },
+  {
+    "id": "M2",
+    "desc": "Foco volta a \"Sobre o HydroBot\" ao fechar o modal",
+    "observed": "foco antes: true / com o modal aberto saiu do elemento: true (BUTTON) / após fechar volta ao elemento: true (Sobre o HydroBot, versão 1.0.0)"
+  },
+  {
+    "id": "M3",
+    "desc": "Foco volta a \"Ajuda\" ao fechar o modal",
+    "observed": "foco antes: true / com o modal aberto saiu do elemento: true (DIV) / após fechar volta ao elemento: true (Ajuda)"
+  },
+  {
+    "id": "M4",
+    "desc": "Foco volta a \"Reiniciar aplicativo\" ao cancelar",
+    "observed": "foco antes: true / com o modal aberto saiu do elemento: true (BUTTON) / após fechar volta ao elemento: true (Reiniciar aplicativo)"
   },
   {
     "id": "E1",

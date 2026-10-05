@@ -4,10 +4,11 @@
 
 | Item | Valor |
 | --- | --- |
-| Repositório | `YagoHM/HydroBot-App-Bluetooth` (cópia local) |
+| Repositório | `origin` = `https://github.com/YagoHM/HydroBotBluetooth.git` (remoto configurado na cópia local; o pedido inicial citava `YagoHM/HydroBot-App-Bluetooth`) |
 | Base analisada | `master` @ `a806ef9` (“Cadastro & Login”) |
-| Branch das alterações | `ihc-v3-ajustes` (local, **ainda não enviada ao GitHub**) |
-| Commits das alterações | `2c41ee4` (ajustes de IHC) e `0880d3d` (conexão automática da simulação, que evita a regressão do I3, e evidências). O próprio relatório entra num commit posterior na mesma branch |
+| Branch das alterações | `ihc-v3-ajustes` (enviada ao `origin` junto com este relatório) |
+| Commits das alterações | `2c41ee4` (ajustes de IHC), `0880d3d` (conexão automática da simulação, que evita a regressão do I3), `3cfd647` (relatório e scripts) e **`f103d1a`** (dependências alinhadas ao SDK 54 e retorno de foco nos modais) |
+| **Versão verificada neste relatório** | Código de **`f103d1a`**. O commit seguinte só atualiza este relatório, o `docs/IHC-V3-ajustes.md` e as evidências |
 | Escopo | Interface mobile, usabilidade, comunicabilidade e acessibilidade. O Modo de Simulação é um recurso para testar a interface |
 
 ### Como ler as verificações
@@ -23,6 +24,13 @@ Nada aqui é reteste com participantes nem validação do robô físico. A execu
 
 ---
 
+## 0. Mudanças desta revisão (após `3cfd647`)
+
+| Item | O que mudou | Verificação |
+| --- | --- | --- |
+| Dependências | `npx expo install --fix` atualizou 13 pacotes Expo **dentro do SDK 54** (`expo` 54.0.21 → 54.0.37, `expo-router` 6.0.14 → 6.0.24, `expo-dev-client` 6.0.16 → 6.0.21, `expo-constants`, `expo-font`, `expo-haptics`, `expo-image`, `expo-linking`, `expo-splash-screen`, `expo-status-bar`, `expo-symbols`, `expo-system-ui`, `expo-web-browser`). `react` 19.1.0, `react-native` 0.81.5 e `react-native-ble-plx` 3.5.0 não mudaram. O lockfile teve 239 entradas alteradas, todas ferramentas de build e dependências transitivas do Expo (Babel, Metro, `@expo/cli`, `lightningcss`…). A ferramenta também acrescentou os plugins `expo-font` e `expo-web-browser` ao `app.json` | Revisão manual de `package.json`, `app.json` e do diff do lockfile. `npx expo install --check`: “Dependencies are up to date”. `npx expo-doctor`: 18/18 checagens aprovadas. `npm audit`: de 64 vulnerabilidades (2 críticas) no lockfile anterior para 59 (1 crítica, `shell-quote`, transitiva). Não rodei `npm audit fix --force`, porque ele forçaria versões fora do SDK 54 |
+| Retorno do foco nos modais | O `AppModal` aceita `returnFocusRef` e, ao fechar, devolve o foco ao controle que abriu o modal, depois de 300 ms (animação de saída). No Android, usa `AccessibilityInfo.setAccessibilityFocus` (foco do TalkBack); na web, `focus()`, e sem ref volta ao elemento que tinha o foco. Ligado em Sobre, Ajuda, switch do Modo de Simulação (confirmação e resultado), Reiniciar e nos erros de Login e Cadastro. Avisos de conexão (`NoticeHost`) não têm um controle de origem | **Web** (executado): com o modal aberto, o foco sai do controle (vai para um botão do modal) e volta a ele ao fechar, em Entrar (erro de login), Sobre, Ajuda e Reiniciar. **TalkBack: pendente** até haver app Android |
+
 ## 1. Alterações atuais
 
 | Problema ou requisito | Alteração realizada | Arquivos | Verificação e resultado observado | Pendência no app instalado |
@@ -32,12 +40,12 @@ Nada aqui é reteste com participantes nem validação do robô físico. A execu
 | **Identificação da simulação** | Faixa “MODO DE SIMULAÇÃO” igual nas quatro abas, com ícone e texto além da cor. Conexão diferencia “Conectado ao dispositivo simulado” de “Conectado via Bluetooth BLE”. Monitor rotula “Leituras SIMULADAS”, “(simulado)” e “Calibração simulada” | `components/ModeBanner.tsx`, `app/(tabs)/*.tsx` | **Web**: faixa presente nas quatro abas; com a simulação ativa, nenhum “Desconectado” no texto visível (regressão E5) | Leitura da faixa pelo TalkBack; fontes ampliadas |
 | **Conexão automática da simulação** | Com a simulação ativa, o dispositivo simulado conecta ao abrir o app e ao ativar o modo; ainda é possível desconectar e reconectar | `context/BluetoothContext.tsx` | **Web**: logo após o login, o Monitor mostra “Leituras SIMULADAS” sem passar por Conexão (regressão I3) | — |
 | **Coerência dos dados — ausência** | A telemetria passou a ter campos opcionais, e o que falta aparece como “Sem leitura”, nunca como 0. Estados: “Não conectado”, “Preparando simulação…”/“Aguardando dados” e “Dados desatualizados” (> 5 s sem leitura) | `services/telemetry.ts`, `app/(tabs)/monitor.tsx` | **Web**: Monitor sem conexão mostra “Não conectado”; antes da 1ª leitura, “Preparando simulação…”; após Desconectar, nenhuma leitura antiga | BLE conectado sem telemetria; perda de conexão real (**Código**) |
-| **Coerência dos dados — fogo** | Cenários da simulação (sem fogo, detecção, referência, elevada) presos à faixa escolhida; `FIRE_STOP` persiste até nova ação. Rótulos de faixa em unidade relativa (“Acima da intensidade de perigo”…), no lugar de “Muito Perto/Combatendo” | `services/simulator.ts`, `services/fireLevels.ts`, `app/(tabs)/monitor.tsx`, `app/(tabs)/settings.tsx` | **Lógica**: 200–300 ciclos por cenário, sempre na faixa; cancelamento persiste. **Web**: “Elevada” 407, 412, 399, 401; após cancelar, 11, 12, 11, 15, 10 com “Nenhum fogo detectado” | — |
-| **Parâmetros aplicados** | Limiar, referência e perigo ficam em campos próprios (não sobrescrevem os sensores), e o Monitor classifica com os valores aplicados. “Distância Ideal” virou “Intensidade de Referência”, sem mudar o comando `SET_FIRE_IDEAL` | `services/simulator.ts`, `components/ParamField.tsx`, `app/(tabs)/monitor.tsx` | **Lógica**: base dos sensores intacta após `SET_FIRE_*`. **Web**: limiar 100 aplicado → Monitor “detecção ≥ 100”, intensidade 141 “Acima do limiar” | Confirmar no firmware o significado e a escala de `SET_FIRE_*` |
+| **Coerência dos dados — fogo** | Cenários da simulação (sem fogo, detecção, referência, elevada) presos à faixa escolhida; `FIRE_STOP` persiste até nova ação. Rótulos de faixa em unidade relativa (“Acima da intensidade de perigo”…), no lugar de “Muito Perto/Combatendo” | `services/simulator.ts`, `services/fireLevels.ts`, `app/(tabs)/monitor.tsx`, `app/(tabs)/settings.tsx` | **Lógica**: 200–300 ciclos por cenário, sempre na faixa; cancelamento persiste. **Web**: “Elevada” 407, 412, 399, 423; após cancelar, 11, 14, 12, 11, 10 com “Nenhum fogo detectado” | — |
+| **Parâmetros aplicados** | Limiar, referência e perigo ficam em campos próprios (não sobrescrevem os sensores), e o Monitor classifica com os valores aplicados. “Distância Ideal” virou “Intensidade de Referência”, sem mudar o comando `SET_FIRE_IDEAL` | `services/simulator.ts`, `components/ParamField.tsx`, `app/(tabs)/monitor.tsx` | **Lógica**: base dos sensores intacta após `SET_FIRE_*`. **Web**: limiar 100 aplicado → Monitor “detecção ≥ 100”, intensidade 161 “Acima do limiar” | Confirmar no firmware o significado e a escala de `SET_FIRE_*` |
 | **Validação** | Aceita só texto inteiro com dígitos (rejeita `20abc`, `50.5`, `1e2`, sinais). Mensagem por tipo de erro, `onBlur` em todos os campos, regra limiar < referência < perigo explicada na tela. “Aplicar” com valor inválido mantém o foco no campo e não envia comando | `utils/validation.ts`, `components/ParamField.tsx` | **Lógica**: 4 testes. **Web**: `""` → “Digite um valor.”; `20abc`/`1e2` → “Use apenas dígitos…”; `50.5` → “sem casas decimais”; `19` → “entre 20 e 200”; `200` → “Deve ser menor que a intensidade de referência em vigor (200).”; apagar tudo e redigitar continua possível (E2) | Teclado numérico Android e colagem de texto |
 | **Resultado dos comandos** | `sendCommand` passou a retornar `applied-sim`, `sent` ou `failed`, sem `Alert` interno. As telas distinguem “aplicado na simulação”, “enviado, aguardando confirmação”, “confirmado pelo dispositivo”, “enviado, sem confirmação” e “falhou” | `context/BluetoothContext.tsx`, `hooks/useCommandFeedback.ts`, `components/FeedbackLine.tsx` | **Web** (falha injetada em todos os comandos): limiar 120 → “falhou”, valor em vigor inalterado; modo → “falhou”, segue Manual; bomba → “falhou”, segue Desligada | Falha real de escrita BLE (**Código**) |
 | **Emergência — acesso** | Botão “PARADA DE EMERGÊNCIA” fixo no rodapé de Controle e Monitor, fora da rolagem, sem confirmação prévia; distinto do “PARAR” (apenas movimento) | `components/EmergencyStopBar.tsx`, `app/(tabs)/control.tsx`, `app/(tabs)/monitor.tsx` | **Web**: visível nas duas abas sem rolar, na viewport 390×844 | Área segura e barra do sistema; fontes ampliadas |
-| **Emergência — comportamento** | Ação centralizada: `STOP`, `PUMP_OFF` e `MODE_MANUAL`, cada um tentado mesmo se o anterior falhar. Resultado por comando; a detecção de fogo não é alterada | `context/BluetoothContext.tsx`, `components/EmergencyStopBar.tsx` | **Lógica** e **Web**: em AUTO com fogo elevado e bomba ligada → movimento parado, bomba desligada, modo Manual 2 s depois, fogo mantido (413). Com falha injetada na bomba → “Parada com falha parcial”, bomba segue “Ligada” | Efeito físico; saída do AUTO pelo firmware |
+| **Emergência — comportamento** | Ação centralizada: `STOP`, `PUMP_OFF` e `MODE_MANUAL`, cada um tentado mesmo se o anterior falhar. Resultado por comando; a detecção de fogo não é alterada | `context/BluetoothContext.tsx`, `components/EmergencyStopBar.tsx` | **Lógica** e **Web**: em AUTO com fogo elevado e bomba ligada → movimento parado, bomba desligada, modo Manual 2 s depois, fogo mantido (392). Com falha injetada na bomba → “Parada com falha parcial”, bomba segue “Ligada” | Efeito físico; saída do AUTO pelo firmware |
 | **Bomba — representação** | Simulação usa PWM coerente (ligada = PWM máximo). Tela: “Ligada · PWM 255 de 255 (100%)” | `services/simulator.ts`, `app/(tabs)/control.tsx`, `app/(tabs)/monitor.tsx` | **Lógica** e **Web**: sem “LIGADA” com “0%” | Formato de `pump` na telemetria real |
 | **Bomba — água baixa** | Bloqueio só para ligar (água ≤ 10% ou modo AUTO), com motivo visível; desligar nunca é bloqueado | `app/(tabs)/control.tsx` | **Lógica** e **Web**: água 8% com bomba ligada → “Desligar” funcionou; “Ligar” desabilitado com “Reabasteça para ligar a bomba” | — |
 | **Movimento simulado** | Estado de movimento para os direcionais e `STOP` | `services/simulator.ts`, `app/(tabs)/control.tsx` | **Web**: segurando “frente” → “Para frente”; ao soltar → “Parado” | Pressionar/soltar em tela de toque real |
@@ -47,7 +55,7 @@ Nada aqui é reteste com participantes nem validação do robô físico. A execu
 | **Ajuda e mensagens** | Ajuda reescrita conforme o comportamento implementado (simulação × robô, sem prometer parada garantida). Avisos de conexão e reinício passaram para o `AppModal` claro; feedback de comando fica inline, sem modal a cada leitura | `app/(tabs)/settings.tsx`, `components/NoticeHost.tsx`, `components/AppModal.tsx`, `app/(tabs)/_layout.tsx` | **Web**: Ajuda e Sobre abrem; modal com fundo `rgb(255,255,255)` (regressão I6); mensagem longa rolável | Diálogos de permissão nativos |
 | **Acessibilidade — rótulos e papéis** | Nomes acessíveis (mover para frente/trás/esquerda/direita, parar movimento, parada de emergência, aplicar…), papéis (`button`, `switch`, `radio`, `progressbar`, `header`), estados e valores dos sliders; erros associados ao campo | Telas e componentes | **Web**: árvore de acessibilidade expôs, entre outros, botão “Mover para frente”, “Aplicar Limiar de Detecção” e switch “Modo de Simulação” desabilitado | **TalkBack** |
 | **Acessibilidade — pressionar/soltar** | Com TalkBack ativo, toque duplo na seta inicia o movimento e “Parar movimento” encerra; o modo é detectado por `AccessibilityInfo` (na web sempre desativado) | `app/(tabs)/control.tsx`, `hooks/useScreenReader.ts` | **Código** | **TalkBack** |
-| **Acessibilidade — foco e anúncios** | Ao abrir um modal, o foco vai para o título (`accessibilityViewIsModal`). Anúncios só em mudança de conexão, modo, fogo, água baixa e emergência, não a cada leitura | `components/AppModal.tsx`, `context/BluetoothContext.tsx` | **Código** (na web os anúncios são inoperantes). O retorno do foco ao fechar o modal **não foi implementado** | **TalkBack** |
+| **Acessibilidade — foco e anúncios** | Ao abrir um modal, o foco vai para o título (`accessibilityViewIsModal`). Anúncios só em mudança de conexão, modo, fogo, água baixa e emergência, não a cada leitura | `components/AppModal.tsx`, `context/BluetoothContext.tsx` | Foco de abertura e anúncios: **Código** (na web os anúncios são inoperantes). Retorno do foco ao fechar: **Web**, em 4 modais (ver §0) | **TalkBack** (foco ao abrir e ao fechar, anúncios) |
 | **Áreas de toque** | Mínimo de 48 dp em botões de modal, aplicar, bomba, modo, chips, −/+, fechar e links de login | Vários | **Código** | Medir no aparelho |
 | **Contraste** | Novas cores de texto; amarelo, laranja e verde claros só em barras e ícones, sempre com texto | Telas, `services/fireLevels.ts` | **Cálculo WCAG** (script): abas inativas 4,83:1; erros 6,47:1; calibrado 5,21:1; sem fogo 5,48:1; referência 6,64:1; detecção 6,44:1; branco no botão Desligar 6,70:1; banner de simulação 8,15:1 (tabela em `docs/IHC-V3-ajustes.md`) | Conferência visual no aparelho |
 | **Barra de abas** | Altura e padding com `insets.bottom` (correção E3 mantida); `lineHeight` e `flexShrink: 0` no rótulo para não cortar “ç/g” | `app/(tabs)/_layout.tsx` | **Web**: rótulos com 16 px de altura, sem corte, dentro da viewport | Navegação por gestos e por 3 botões |
@@ -73,6 +81,15 @@ A equipe informou que os 11 problemas foram corrigidos antes das alterações at
 | E4 | Emojis em Configurações | Nenhum emoji na interface | Código + Web | Texto visível das 4 abas sem emojis. Só restam em `console.log` e em `components/hello-wave.tsx` (template, não usado) |
 | E5 | “Desconectado” com simulação ativa | `ModeBanner` mostra o estado da simulação | Web | “MODO DE SIMULAÇÃO · Conectado ao dispositivo simulado”; nenhum “Desconectado” |
 
+Retorno de foco (novo nesta revisão, **Web**):
+
+| ID | Checagem | Resultado observado |
+| --- | --- | --- |
+| M1 | Erro de login → OK | Foco saiu de “Entrar” durante o modal e voltou a “Entrar” |
+| M2 | Sobre o HydroBot → OK | Voltou a “Sobre o HydroBot, versão 1.0.0” |
+| M3 | Ajuda → OK | Voltou a “Ajuda” |
+| M4 | Reiniciar → Cancelar | Voltou a “Reiniciar aplicativo” |
+
 Log: `docs/evidencias/regressao/regressao-web.log.json`. Capturas: `docs/evidencias/regressao/`.
 
 ---
@@ -83,14 +100,18 @@ Log: `docs/evidencias/regressao/regressao-web.log.json`. Capturas: `docs/evidenc
 
 | Comando | Resultado | Erros ou avisos remanescentes |
 | --- | --- | --- |
+| `npx expo install --fix` | 13 pacotes atualizados no SDK 54; plugins `expo-font` e `expo-web-browser` adicionados ao `app.json` | O npm informou 59 vulnerabilidades (antes, 64) |
+| `npx expo install --check` | Saída 0, “Dependencies are up to date” | Nenhum |
+| `npx expo-doctor` | Saída 0, 18/18 checagens aprovadas | Nenhum |
 | `npx tsc --noEmit` | Saída 0 | Nenhum |
-| `npm run lint` (`expo lint`) | Saída 0, sem mensagens | Nenhum (a base `a806ef9` tinha 2 avisos `array-type`, corrigidos) |
+| `npm run lint` (`expo lint`) | Saída 0, sem mensagens | Nenhum |
 | `npm test` | 15 testes, 15 aprovados | Nenhum |
-| `npx expo export --platform web` | Build gerado em `dist/` | Nenhum |
-| `node scripts/verificacao-web/flow.mjs …` (roteiro principal, build de produção) | Todas as etapas concluídas; 23 capturas | Console sem erros nem avisos |
-| `node scripts/verificacao-web/regress.mjs …` (regressão + falhas + temporizadores) | 18 checagens concluídas | Console sem erros nem avisos |
-| `npx expo install --check` / `npx expo-doctor` | 1 checagem falhou: **13 pacotes com versão de patch abaixo da esperada pelo SDK 54** (ex.: `expo` 54.0.21 × ~54.0.37, `expo-router` 6.0.14 × ~6.0.24) | Ver §4 |
-| Build Android | **Não executado** nesta etapa | — |
+| `npm run build:web` | Saída 0; `dist/` com bundle de 1,64 MB; nenhum arquivo contém `react-native-ble-plx` | Nenhum |
+| `node scripts/verificacao-web/flow.mjs docs/evidencias/web http://localhost:8090` (roteiro principal) | Todas as etapas concluídas; 23 capturas | Console sem erros nem avisos |
+| `node scripts/verificacao-web/regress.mjs docs/evidencias/regressao http://localhost:8090` (regressão, falhas, temporizadores e foco) | 22 checagens concluídas | Console sem erros nem avisos |
+| Build Android | **Não executado** (comando preparado em §4) | — |
+
+Nenhuma falha apareceu nesta rodada. Na revisão do teste de foco, verifiquei também que ele não passaria por acaso: medi o foco com o modal aberto para confirmar que ele realmente sai do controle antes de voltar.
 
 O dev server também foi usado na web durante o desenvolvimento (em desenvolvimento, o Metro mostra avisos do react-native-web sobre `shadow*` e `pointerEvents`; o build de produção não registrou nenhum).
 
@@ -98,8 +119,8 @@ O dev server também foi usado na web durante o desenvolvimento (em desenvolvime
 
 | Checagem | Teste executado | Análise de código |
 | --- | --- | --- |
-| Persistência do cancelamento do fogo simulado | **Lógica**: 300 ciclos após `FIRE_STOP` sem fogo. **Web**: 5 leituras seguidas entre 10 e 15, “Nenhum fogo detectado” | A atualização periódica (`simTick`) altera só o ruído, nunca o cenário |
-| Emergência interrompe movimento e bomba sem retomada automática | **Lógica**: STOP/PUMP_OFF/MODE_MANUAL seguidos de 50 ciclos → parado, bomba 0, Manual, fogo mantido. **Web**: nas duas abas, Manual e bomba desligada 2 s depois, fogo 413 mantido | No BLE, depende do firmware (§5) |
+| Persistência do cancelamento do fogo simulado | **Lógica**: 300 ciclos após `FIRE_STOP` sem fogo. **Web**: 5 leituras seguidas entre 10 e 14, “Nenhum fogo detectado” | A atualização periódica (`simTick`) altera só o ruído, nunca o cenário |
+| Emergência interrompe movimento e bomba sem retomada automática | **Lógica**: STOP/PUMP_OFF/MODE_MANUAL seguidos de 50 ciclos → parado, bomba 0, Manual, fogo mantido. **Web**: nas duas abas, Manual e bomba desligada 2 s depois, fogo 392 mantido | No BLE, depende do firmware (§5) |
 | Desligar a bomba com água baixa | **Lógica** e **Web**: água 8% com bomba ligada → desligou; ligar ficou bloqueado com motivo | — |
 | Simulação usa os parâmetros aplicados | **Lógica**: limiar/referência/perigo 100/300/500 → intensidade em [100, 300) classificada “detecção”. **Web**: Monitor exibiu “detecção ≥ 100” após aplicar 100 | — |
 | Entradas inválidas rejeitadas | **Lógica**: `""`, `"   "`, `20abc`, `50.5`, `50,5`, `1e2`, `-5`, `0x10`, `+20` e `2 0` rejeitados, além de limites e ordem. **Web**: `""`, `20abc`, `50.5`, `1e2`, `19` e `200` com mensagem específica; “Aplicar” com valor inválido não mostrou sucesso e manteve o foco no campo | — |
@@ -109,7 +130,7 @@ O dev server também foi usado na web durante o desenvolvimento (em desenvolvime
 ### O que não pôde ser executado e por quê
 
 - **BLE real, permissões e troca BLE ↔ simulação**: na web, o transporte BLE é intencionalmente indisponível, e não houve aparelho Android com o robô nesta etapa.
-- **TalkBack, anúncios e foco**: o react-native-web não implementa `announceForAccessibility` nem detecta leitor de tela.
+- **TalkBack, anúncios e foco do leitor de tela**: o react-native-web não implementa `announceForAccessibility` nem detecta leitor de tela. O retorno de foco foi verificado só para o foco de teclado na web; o caminho Android (`setAccessibilityFocus`) não foi executado.
 - **Fontes ampliadas, teclado e barras do sistema**: dependem do Android.
 - **Arraste do slider com telemetria chegando**: não foi possível simular o gesto de forma confiável no Chrome headless.
 
@@ -126,7 +147,7 @@ O dev server também foi usado na web durante o desenvolvimento (em desenvolvime
 
 ### Perfil e comando recomendados
 
-Versão instalável para teste (APK):
+Comando preparado para a versão instalável de teste (APK), a partir de `ihc-v3-ajustes` atualizada e com sessão no EAS (`eas login`):
 
 ```bash
 eas build --platform android --profile preview
@@ -142,9 +163,9 @@ O perfil `production` gera AAB, voltado à loja, e não é necessário para esta
 
 ### Possíveis impedimentos
 
-1. **Versões de patch desalinhadas** (expo-doctor, 13 pacotes). Recomenda-se `npx expo install --fix`, seguido de `npx tsc --noEmit`, `npm run lint`, `npm test` e da execução web antes do build. Não apliquei a atualização, porque altera dependências e merece revisão da equipe.
+1. ~~Versões de patch desalinhadas~~: **resolvido** em `f103d1a` (`expo-doctor` 18/18). Os pacotes nativos atualizados (`expo-dev-client`, `expo-modules-core`, `expo-image`…) só serão compilados no próximo build Android.
 2. **Pasta `android/` local desatualizada**: é anterior às mudanças de `app.json` (ainda usa tema `DayNight`). Ela está no `.gitignore`, então o EAS gera os arquivos nativos a partir do `app.json`. Para build local, use `npx expo prebuild --clean`.
-3. **Branch não publicada**: o EAS empacota a cópia local. Rode o build a partir da branch `ihc-v3-ajustes` com a árvore limpa (`git status`).
+3. **Árvore local**: o EAS empacota a cópia local. Rode o build com a branch `ihc-v3-ajustes` em dia (`git pull`) e a árvore limpa (`git status`).
 4. **Login no EAS**: `eas build` exige conta com acesso ao `projectId` configurado.
 5. **`expo-updates` sem URL/canal configurado**: não verifiquei o efeito no build. O botão Reiniciar usa `Updates.reloadAsync()` e, se falhar, apenas reinicia a sessão do app.
 6. **Nova arquitetura**: o `react-native-ble-plx` 3.5.0 não declara `codegenConfig` e roda pela camada de compatibilidade. Isso não foi verificado nesta etapa.
@@ -157,7 +178,7 @@ O perfil `production` gera AAB, voltado à loja, e não é necessário para esta
 | Troca de modo | BLE conectado → simulação → BLE, repetidas vezes: a conexão física deve cair, sem dados de um modo no outro |
 | Confirmações | Se o firmware envia `*_SET:` ou campos `fire_*`/`mode`/`pump`: a tela deve alternar entre “confirmado” e “enviado, sem confirmação” |
 | Emergência | Botão acessível em Controle e Monitor com e sem teclado aberto; efeito físico; saída do AUTO |
-| **TalkBack** | Leitura da faixa de modo, rótulos dos direcionais, toque duplo para mover e “Parar movimento”, switches e chips com estado, sliders (valor e −/+), erros dos campos, foco ao abrir/fechar modais, anúncios de conexão/modo/fogo/água sem narrar cada leitura |
+| **TalkBack** | Leitura da faixa de modo, rótulos dos direcionais, toque duplo para mover e “Parar movimento”, switches e chips com estado, sliders (valor e −/+), erros dos campos, foco no título ao abrir um modal e **retorno do foco ao controle de origem ao fechar** (Sobre, Ajuda, switch de simulação, Reiniciar, erros de Login e Cadastro), anúncios de conexão/modo/fogo/água sem narrar cada leitura |
 | **Fontes ampliadas** | Escala máxima do sistema: faixa de modo, rótulos das abas, cards do Monitor (sensores lado a lado), botão de emergência e painel de resultado, modais |
 | **Teclado** | Campos de parâmetro com o teclado aberto: campo e mensagem de erro visíveis; barra de emergência sem cobrir o campo |
 | **Navegação inferior** | Navegação por gestos e por 3 botões: abas e barra de emergência sem sobreposição (E3) |

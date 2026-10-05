@@ -1,5 +1,7 @@
 # HydroBot — ajustes de IHC (3ª entrega)
 
+> Detalhamento por arquivo. O resultado consolidado e mais recente das verificações está em [`RELATORIO_ALTERACOES_IHC_HYDROBOT.md`](../RELATORIO_ALTERACOES_IHC_HYDROBOT.md).
+
 Branch: `ihc-v3-ajustes`, criada a partir de `master` em `a806ef9` (a mesma versão usada na análise).
 Os 11 problemas dos testes em sala não foram reexecutados aqui. Os itens abaixo são ajustes adicionais vindos da inspeção do código e da interface, e **não** são resultados de novos testes com participantes.
 
@@ -32,7 +34,7 @@ Tipos de verificação usados na tabela:
 | `components/EmergencyStopBar.tsx` (novo) | Parada de emergência fixa no rodapé de Controle e Monitor, sem confirmação prévia, com resultado por comando. | §5 |
 | `components/ParamField.tsx`, `SliderSetting.tsx`, `FeedbackLine.tsx`, `NotConnectedCard.tsx`, `NoticeHost.tsx` (novos) | Campo validado, slider com − / +, linha de estado, cartão “não conectado” e host de avisos. | §6, §7 e §8 |
 | `hooks/useCommandFeedback.ts`, `hooks/useScreenReader.ts` (novos) | Descreve o resultado sem exagerar. Detecta TalkBack; na web sempre `false`, porque o react-native-web responde `true` fixo. | §5 e §8 |
-| `components/AppModal.tsx` | Foco no título ao abrir, `accessibilityViewIsModal`, papel de cabeçalho, mensagem rolável e botões de 48 dp. | §6 e §8 |
+| `components/AppModal.tsx` | Foco no título ao abrir e devolução do foco ao controle que abriu o modal (`returnFocusRef`), `accessibilityViewIsModal`, papel de cabeçalho, mensagem rolável e botões de 48 dp. | §6 e §8 |
 | `app/login.tsx`, `app/register.tsx` | Papéis de botão/link, área de toque do link e cor do placeholder. Fluxo inalterado. | §8 |
 | `app.json` | `web.output: "single"` (SPA; o modo `static` executa o app no Node durante a exportação), `userInterfaceStyle: "light"` (as telas usam paleta clara fixa) e textos de permissão iOS sem “Arduino”. | §8 e §9 |
 | `package.json` | Scripts `test` e `build:web`. | §10 |
@@ -61,8 +63,8 @@ UUIDs, comandos do protocolo e o formato da telemetria real não foram alterados
 | Ausência de dados exibida como 0% e crítico | Telemetria opcional e estados de espera | Monitor sem conexão e logo após conectar (04, 06) | “Não conectado” e “Preparando simulação…”, sem números | Web | BLE sem telemetria: só código |
 | Dados antigos após desconectar | Sessão invalidada limpa a telemetria; aviso de dados desatualizados após 5 s | Desconectar e abrir o Monitor (23) | “Não conectado”, nenhuma leitura antiga | Web | Perda de conexão BLE real: só código |
 | Mistura de modos e conexão física mantida ao trocar | `toggleMockMode` → `teardown()` encerra busca, conexão e temporizadores; callbacks antigos descartados | — | — | Código | **Não verificado em execução**: na web não há BLE; requer Android |
-| `FIRE_STOP` desfeito / intensidade incoerente | Cenários persistentes na faixa | Elevada por 4 ciclos e Sem fogo por 5 ciclos (10, 11); testes de lógica com 200–300 ciclos | Elevada: 401–413 “Acima da intensidade de perigo”. Cancelado: 10–15 “Abaixo do limiar”, sem retorno | Lógica + Web | — |
-| Parâmetros gravados nos sensores | `params` próprios; base dos sensores intacta | `SET_FIRE_*` nos testes; limiar 100 aplicado e Monitor (13, 14) | Monitor: “detecção ≥ 100”, intensidade 141 “Acima do limiar” | Lógica + Web | — |
+| `FIRE_STOP` desfeito / intensidade incoerente | Cenários persistentes na faixa | Elevada por 4 ciclos e Sem fogo por 5 ciclos (10, 11); testes de lógica com 200–300 ciclos | Elevada: 399–423 “Acima da intensidade de perigo”. Cancelado: 10–14 “Abaixo do limiar”, sem retorno | Lógica + Web | — |
+| Parâmetros gravados nos sensores | `params` próprios; base dos sensores intacta | `SET_FIRE_*` nos testes; limiar 100 aplicado e Monitor (13, 14) | Monitor: “detecção ≥ 100”, intensidade 161 “Acima do limiar” | Lógica + Web | — |
 | Rótulos “Muito Perto/Aproximando/Combatendo” | Rótulos de faixa de intensidade em unidade relativa | Monitor (10) | “Acima da intensidade de perigo”, “Intensidade simulada — unidade relativa” | Web | — |
 | “Distância Ideal” | Rótulo “Intensidade de Referência”, comando `SET_FIRE_IDEAL` mantido | Configurações (12) | Rótulo e ajuda novos | Web | Confirmar o significado no firmware |
 | Validação com `parseInt` | Texto inteiro só com dígitos, `onBlur` em todos os campos, erro junto ao campo | `""`, `20abc`, `50.5`, `1e2`, `19`, `200` e Aplicar inválido (12) | Mensagem específica para cada caso; Aplicar inválido mantém o foco no campo e não envia comando | Lógica + Web | — |
@@ -72,7 +74,7 @@ UUIDs, comandos do protocolo e o formato da telemetria real não foram alterados
 | `STOP` sem efeito e sem movimento simulado | Estado `motion` | Segurar “frente” e soltar (15) | “Para frente” durante o toque e “Parado” ao soltar | Lógica + Web | TalkBack: não verificado |
 | Bomba “LIGADA” com “0%” | PWM simulado = PWM máx | Ligar (16) | “Ligada · PWM 255 de 255 (100%)” | Lógica + Web | — |
 | Água baixa bloqueava desligar | Bloqueio só para ligar; Ligar/Desligar separados | Água 8% com bomba ligada e Desligar (20, 21) | Desligou; Ligar ficou desabilitado com motivo visível | Lógica + Web | — |
-| Emergência fora de alcance e com sucesso falso | Barra fixa em Controle e Monitor e resultado por comando | AUTO + fogo elevado + bomba; emergência nas duas abas (16–18) | Movimento parado, bomba desligada, modo Manual após 2 s; fogo mantido (413) | Lógica + Web | BLE: só código |
+| Emergência fora de alcance e com sucesso falso | Barra fixa em Controle e Monitor e resultado por comando | AUTO + fogo elevado + bomba; emergência nas duas abas (16–18) | Movimento parado, bomba desligada, modo Manual após 2 s; fogo mantido (392) | Lógica + Web | BLE: só código |
 | Falha parcial da emergência | Cada comando é tentado e informado | Falha injetada na bomba (19) | “Parada com falha parcial”: bomba “falhou”, os outros aplicados, bomba segue “Ligada” | Web | Falha BLE real: só código |
 | Mensagem de modo obsoleta após emergência | Feedbacks limpos ao receber o relatório | Emergência após trocar o modo | Encontrado e corrigido durante o teste web | Web | — |
 | “Calibrar Sensores” não calibrava | Renomeado para “Configurar sensores” | Controle | Rótulo novo; badge “Calibração simulada” | Web | — |
@@ -105,7 +107,7 @@ Os valores “antes” calculados pelo script coincidem com os da análise. Amar
 - **Escala dos parâmetros de fogo**: o arquivo de protocolo registrava padrões 200/1400/800, fora das faixas da tela (20–200, 200–600, 100–400). As faixas da tela foram mantidas; a escala real precisa ser confirmada no firmware.
 - **Emergência no BLE**: o app envia `STOP`, `PUMP_OFF` e `MODE_MANUAL` (todos do contrato). Não foi verificado se o firmware sai do AUTO com `MODE_MANUAL`, nem se o movimento para fisicamente.
 - **Movimento no BLE**: o protocolo não confirma movimento; a tela mostra apenas o último comando enviado.
-- **TalkBack**: na web, `announceForAccessibility` não faz nada e não há como detectar leitor de tela. Não foram verificados o modo de toque duplo dos direcionais, o foco nos modais, o retorno de foco ao fechar (não implementado) e os anúncios.
+- **TalkBack**: na web, `announceForAccessibility` não faz nada e não há como detectar leitor de tela. Não foram verificados o modo de toque duplo dos direcionais, o foco nos modais, o retorno de foco ao fechar (implementado; verificado só na web) e os anúncios.
 - **Troca BLE ↔ simulação**: o encerramento da conexão física foi conferido só por inspeção do código.
 - **Build nativo**: `react-native-ble-plx` exige development build (`expo-dev-client`/EAS). O Expo Go comum não basta.
 - **Tema escuro**: o app foi fixado no tema claro (`userInterfaceStyle: "light"`) para não misturar componentes nativos escuros com a paleta clara fixa. Validar em aparelho.

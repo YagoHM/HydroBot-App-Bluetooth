@@ -60,7 +60,7 @@
       "Detecção de Fogo |  | FOGO SIMULADO DETECTADO | Intensidade simulada — unidade relativa | 407 |  | Acima da intensidade de perigo | Faixas",
       "Detecção de Fogo |  | FOGO SIMULADO DETECTADO | Intensidade simulada — unidade relativa | 412 |  | Acima da intensidade de perigo | Faixas",
       "Detecção de Fogo |  | FOGO SIMULADO DETECTADO | Intensidade simulada — unidade relativa | 399 |  | Acima da intensidade de perigo | Faixas",
-      "Detecção de Fogo |  | FOGO SIMULADO DETECTADO | Intensidade simulada — unidade relativa | 401 |  | Acima da intensidade de perigo | Faixas"
+      "Detecção de Fogo |  | FOGO SIMULADO DETECTADO | Intensidade simulada — unidade relativa | 423 |  | Acima da intensidade de perigo | Faixas"
     ]
   },
   {
@@ -70,9 +70,9 @@
     "step": "FIRE_STOP, 5 atualizações",
     "observed": [
       "Detecção de Fogo |  | Nenhum fogo detectado | Intensidade simulada — unidade relativa | 11 |  | Abaixo do limiar de detecção | Faixas: det",
+      "Detecção de Fogo |  | Nenhum fogo detectado | Intensidade simulada — unidade relativa | 14 |  | Abaixo do limiar de detecção | Faixas: det",
       "Detecção de Fogo |  | Nenhum fogo detectado | Intensidade simulada — unidade relativa | 12 |  | Abaixo do limiar de detecção | Faixas: det",
       "Detecção de Fogo |  | Nenhum fogo detectado | Intensidade simulada — unidade relativa | 11 |  | Abaixo do limiar de detecção | Faixas: det",
-      "Detecção de Fogo |  | Nenhum fogo detectado | Intensidade simulada — unidade relativa | 15 |  | Abaixo do limiar de detecção | Faixas: det",
       "Detecção de Fogo |  | Nenhum fogo detectado | Intensidade simulada — unidade relativa | 10 |  | Abaixo do limiar de detecção | Faixas: det"
     ]
   },
@@ -119,7 +119,7 @@
   },
   {
     "step": "Monitor usa limiar aplicado",
-    "observed": "Detecção de Fogo |  | FOGO SIMULADO DETECTADO | Intensidade simulada — unidade relativa | 141 |  | Acima do limiar de detecção | Faixas: detecção ≥ 100 · referência ≥ 200 · perigo ≥ 350\nParâmetros aplicados na simulação. |  | Sensores de Fogo (simulados) | "
+    "observed": "Detecção de Fogo |  | FOGO SIMULADO DETECTADO | Intensidade simulada — unidade relativa | 161 |  | Acima do limiar de detecção | Faixas: detecção ≥ 100 · referência ≥ 200 · perigo ≥ 350\nParâmetros aplicados na simulação. |  | Sensores de Fogo (simulados) | "
   },
   {
     "shot": "14-monitor-faixas-com-parametros-aplicados.png"
@@ -151,7 +151,7 @@
   },
   {
     "step": "Emergência no Monitor após 2 s",
-    "observed": "Bomba de Água |  | Desligada |  | Ligar | Ações Rápidas |  | Configurar sensores |  |  | Parada aplicada  ### Status do Sistema | Modo |  | Manual | Velocidade | 100% | PWM Mín | 180 | PWM Máx | 255 |  | Parada aplicad ### Detecção de Fogo |  | FOGO SIMULADO DETECTADO | Intensidade simulada — unidade relativa | 413 |  | Acima da  ### Parada aplicada na simulação |  | Movimento parado · bomba desligada · modo manual. | Retome o modo automátic"
+    "observed": "Bomba de Água |  | Desligada |  | Ligar | Ações Rápidas |  | Configurar sensores |  |  | Parada aplicada  ### Status do Sistema | Modo |  | Manual | Velocidade | 100% | PWM Mín | 180 | PWM Máx | 255 |  | Parada aplicad ### Detecção de Fogo |  | FOGO SIMULADO DETECTADO | Intensidade simulada — unidade relativa | 392 |  | Acima da  ### Parada aplicada na simulação |  | Movimento parado · bomba desligada · modo manual. | Retome o modo automátic"
   },
   {
     "shot": "18-monitor-apos-emergencia.png"
