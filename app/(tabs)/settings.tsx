@@ -111,7 +111,7 @@ export default function SettingsScreen() {
                 ? "Modo de Simulação ativado"
                 : "Modo Bluetooth BLE ativado",
               message: activating
-                ? "Conecte-se ao dispositivo simulado na aba Conexão. Os dados exibidos serão simulados."
+                ? "O dispositivo simulado está sendo conectado. Os dados exibidos serão simulados."
                 : "Busque e conecte ao HydroBot na aba Conexão.",
             });
           },

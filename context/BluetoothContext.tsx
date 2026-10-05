@@ -593,6 +593,13 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({
     announce("Desconectado");
   }, [teardown]);
 
+  // Com a simulação ativa, o dispositivo simulado é conectado automaticamente
+  // (preserva a correção I3: Monitor com dados simulados logo após ativar).
+  // O usuário ainda pode desconectar e reconectar pela aba Conexão.
+  useEffect(() => {
+    if (modeLoaded && isMockRef.current) void connect(SIM_DEVICE);
+  }, [modeLoaded, connect]);
+
   // ─── Troca de modo ────────────────────────────────────────────────────────
 
   const setSimFailure = useCallback((f: SimFailure) => {
@@ -621,8 +628,9 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({
       // preferência não salva; o modo atual continua valendo nesta sessão
     }
     announce(next ? "Modo de Simulação ativado" : "Modo Bluetooth BLE ativado");
+    if (next) void connect(SIM_DEVICE);
     return true;
-  }, [teardown, setSimFailure]);
+  }, [teardown, setSimFailure, connect]);
 
   const restartApp = useCallback(async () => {
     try {

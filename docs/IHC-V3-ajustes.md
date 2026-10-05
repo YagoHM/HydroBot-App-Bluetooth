@@ -27,6 +27,7 @@ Tipos de verificação usados na tabela:
 | `app/(tabs)/monitor.tsx` | Reescrito. Estados “Não conectado”, “Preparando simulação…”/“Aguardando dados” e “Dados desatualizados”. Usa “sem leitura” no lugar de 0, faixas com os parâmetros aplicados, “Intensidade simulada — unidade relativa”, rótulo de texto em cada sensor, “Calibração simulada” e parada de emergência fixa. | §4, §5 e §8 |
 | `app/(tabs)/settings.tsx` | Painel de simulação com cenários de fogo, água simulada e falha de envio simulada. Campos validados com `onBlur` em todos, sliders protegidos durante o arraste, PWM mín ≤ máx, “Intensidade de Referência”, Ajuda reescrita e rodapé “Bluetooth Low Energy (BLE)”. | §3, §4, §6 e §7 |
 | `app/(tabs)/_layout.tsx` | Aba inativa `#6B7280`, reinício com `AppModal`, `NoticeHost` e barra de abas sem corte dos rótulos. | §6 e §8 |
+| Conexão automática da simulação | Com a simulação ativa, o dispositivo simulado conecta sozinho ao abrir o app e ao ativar o modo; o usuário ainda pode desconectar e reconectar em Conexão. Evita a regressão do problema I3 (Monitor “Não conectado” com a simulação ativa). | I3 |
 | `components/ModeBanner.tsx` (novo) | Indicador de origem igual nas quatro abas, com ícone, texto e cor. | §4 |
 | `components/EmergencyStopBar.tsx` (novo) | Parada de emergência fixa no rodapé de Controle e Monitor, sem confirmação prévia, com resultado por comando. | §5 |
 | `components/ParamField.tsx`, `SliderSetting.tsx`, `FeedbackLine.tsx`, `NotConnectedCard.tsx`, `NoticeHost.tsx` (novos) | Campo validado, slider com − / +, linha de estado, cartão “não conectado” e host de avisos. | §6, §7 e §8 |
@@ -55,27 +56,27 @@ UUIDs, comandos do protocolo e o formato da telemetria real não foram alterados
 | Problema | Alteração | Cenário executado | Resultado observado | Tipo | Pendência |
 | --- | --- | --- | --- | --- | --- |
 | Textos HC-05/HC-06 incompatíveis com BLE | Textos de Conexão, Configurações, Ajuda e permissões | Busca de “HC-0” e “Arduino” no projeto | Nenhuma ocorrência fora de `node_modules` | Código + Web | — |
-| Origem simulada pouco clara | `ModeBanner` nas 4 abas e “Leituras SIMULADAS” | Percorrer as 4 abas (capturas 02–08) | Faixa “MODO DE SIMULAÇÃO” com ícone e texto em todas | Web | Android não verificado |
-| Conexão simulada parecia física | Textos distintos em Conexão | Buscar e conectar (04, 07) | “Conectado ao dispositivo simulado… Nenhum robô físico está sendo controlado” | Web | — |
-| Ausência de dados exibida como 0% e crítico | Telemetria opcional e estados de espera | Monitor sem conexão e logo após conectar (03, 05) | “Não conectado” e “Preparando simulação…”, sem números | Web | BLE sem telemetria: só código |
-| Dados antigos após desconectar | Sessão invalidada limpa a telemetria; aviso de dados desatualizados após 5 s | Desconectar e abrir o Monitor (22) | “Não conectado”, nenhuma leitura antiga | Web | Perda de conexão BLE real: só código |
+| Origem simulada pouco clara | `ModeBanner` nas 4 abas e “Leituras SIMULADAS” | Percorrer as 4 abas (capturas 03–09) | Faixa “MODO DE SIMULAÇÃO” com ícone e texto em todas | Web | Android não verificado |
+| Conexão simulada parecia física | Textos distintos em Conexão | Buscar e conectar (05, 08) | “Conectado ao dispositivo simulado… Nenhum robô físico está sendo controlado” | Web | — |
+| Ausência de dados exibida como 0% e crítico | Telemetria opcional e estados de espera | Monitor sem conexão e logo após conectar (04, 06) | “Não conectado” e “Preparando simulação…”, sem números | Web | BLE sem telemetria: só código |
+| Dados antigos após desconectar | Sessão invalidada limpa a telemetria; aviso de dados desatualizados após 5 s | Desconectar e abrir o Monitor (23) | “Não conectado”, nenhuma leitura antiga | Web | Perda de conexão BLE real: só código |
 | Mistura de modos e conexão física mantida ao trocar | `toggleMockMode` → `teardown()` encerra busca, conexão e temporizadores; callbacks antigos descartados | — | — | Código | **Não verificado em execução**: na web não há BLE; requer Android |
-| `FIRE_STOP` desfeito / intensidade incoerente | Cenários persistentes na faixa | Elevada por 4 ciclos e Sem fogo por 5 ciclos (09, 10); testes de lógica com 200–300 ciclos | Elevada: 401–413 “Acima da intensidade de perigo”. Cancelado: 10–15 “Abaixo do limiar”, sem retorno | Lógica + Web | — |
-| Parâmetros gravados nos sensores | `params` próprios; base dos sensores intacta | `SET_FIRE_*` nos testes; limiar 100 aplicado e Monitor (12, 13) | Monitor: “detecção ≥ 100”, intensidade 141 “Acima do limiar” | Lógica + Web | — |
-| Rótulos “Muito Perto/Aproximando/Combatendo” | Rótulos de faixa de intensidade em unidade relativa | Monitor (09) | “Acima da intensidade de perigo”, “Intensidade simulada — unidade relativa” | Web | — |
-| “Distância Ideal” | Rótulo “Intensidade de Referência”, comando `SET_FIRE_IDEAL` mantido | Configurações (11) | Rótulo e ajuda novos | Web | Confirmar o significado no firmware |
-| Validação com `parseInt` | Texto inteiro só com dígitos, `onBlur` em todos os campos, erro junto ao campo | `""`, `20abc`, `50.5`, `1e2`, `19`, `200` e Aplicar inválido (11) | Mensagem específica para cada caso; Aplicar inválido mantém o foco no campo e não envia comando | Lógica + Web | — |
+| `FIRE_STOP` desfeito / intensidade incoerente | Cenários persistentes na faixa | Elevada por 4 ciclos e Sem fogo por 5 ciclos (10, 11); testes de lógica com 200–300 ciclos | Elevada: 401–413 “Acima da intensidade de perigo”. Cancelado: 10–15 “Abaixo do limiar”, sem retorno | Lógica + Web | — |
+| Parâmetros gravados nos sensores | `params` próprios; base dos sensores intacta | `SET_FIRE_*` nos testes; limiar 100 aplicado e Monitor (13, 14) | Monitor: “detecção ≥ 100”, intensidade 141 “Acima do limiar” | Lógica + Web | — |
+| Rótulos “Muito Perto/Aproximando/Combatendo” | Rótulos de faixa de intensidade em unidade relativa | Monitor (10) | “Acima da intensidade de perigo”, “Intensidade simulada — unidade relativa” | Web | — |
+| “Distância Ideal” | Rótulo “Intensidade de Referência”, comando `SET_FIRE_IDEAL` mantido | Configurações (12) | Rótulo e ajuda novos | Web | Confirmar o significado no firmware |
+| Validação com `parseInt` | Texto inteiro só com dígitos, `onBlur` em todos os campos, erro junto ao campo | `""`, `20abc`, `50.5`, `1e2`, `19`, `200` e Aplicar inválido (12) | Mensagem específica para cada caso; Aplicar inválido mantém o foco no campo e não envia comando | Lógica + Web | — |
 | Ordem dos parâmetros | Regra limiar < referência < perigo, explicada na tela | Limiar 200 com referência 200 | “Deve ser menor que a intensidade de referência em vigor (200).” | Lógica + Web | — |
 | Telemetria sobrescrevendo slider | Sincroniza só fora do arraste e quando o valor muda | — | — | Código | Arraste com telemetria a 600 ms não reproduzido na web |
 | PWM mín > máx | Limites dos sliders dependentes e recusa na simulação | Teste `SET_PWM_MIN:210` com máx 200 | Recusado | Lógica | — |
-| `STOP` sem efeito e sem movimento simulado | Estado `motion` | Segurar “frente” e soltar (14) | “Para frente” durante o toque e “Parado” ao soltar | Lógica + Web | TalkBack: não verificado |
-| Bomba “LIGADA” com “0%” | PWM simulado = PWM máx | Ligar (15) | “Ligada · PWM 255 de 255 (100%)” | Lógica + Web | — |
-| Água baixa bloqueava desligar | Bloqueio só para ligar; Ligar/Desligar separados | Água 8% com bomba ligada e Desligar (19, 20) | Desligou; Ligar ficou desabilitado com motivo visível | Lógica + Web | — |
-| Emergência fora de alcance e com sucesso falso | Barra fixa em Controle e Monitor e resultado por comando | AUTO + fogo elevado + bomba; emergência nas duas abas (15–17) | Movimento parado, bomba desligada, modo Manual após 2 s; fogo mantido (413) | Lógica + Web | BLE: só código |
-| Falha parcial da emergência | Cada comando é tentado e informado | Falha injetada na bomba (18) | “Parada com falha parcial”: bomba “falhou”, os outros aplicados, bomba segue “Ligada” | Web | Falha BLE real: só código |
+| `STOP` sem efeito e sem movimento simulado | Estado `motion` | Segurar “frente” e soltar (15) | “Para frente” durante o toque e “Parado” ao soltar | Lógica + Web | TalkBack: não verificado |
+| Bomba “LIGADA” com “0%” | PWM simulado = PWM máx | Ligar (16) | “Ligada · PWM 255 de 255 (100%)” | Lógica + Web | — |
+| Água baixa bloqueava desligar | Bloqueio só para ligar; Ligar/Desligar separados | Água 8% com bomba ligada e Desligar (20, 21) | Desligou; Ligar ficou desabilitado com motivo visível | Lógica + Web | — |
+| Emergência fora de alcance e com sucesso falso | Barra fixa em Controle e Monitor e resultado por comando | AUTO + fogo elevado + bomba; emergência nas duas abas (16–18) | Movimento parado, bomba desligada, modo Manual após 2 s; fogo mantido (413) | Lógica + Web | BLE: só código |
+| Falha parcial da emergência | Cada comando é tentado e informado | Falha injetada na bomba (19) | “Parada com falha parcial”: bomba “falhou”, os outros aplicados, bomba segue “Ligada” | Web | Falha BLE real: só código |
 | Mensagem de modo obsoleta após emergência | Feedbacks limpos ao receber o relatório | Emergência após trocar o modo | Encontrado e corrigido durante o teste web | Web | — |
 | “Calibrar Sensores” não calibrava | Renomeado para “Configurar sensores” | Controle | Rótulo novo; badge “Calibração simulada” | Web | — |
-| Ajuda com promessas | Ajuda reescrita (21) | Abrir Ajuda | Texto descreve o comportamento real; modal rolável | Web | — |
+| Ajuda com promessas | Ajuda reescrita (22) | Abrir Ajuda | Texto descreve o comportamento real; modal rolável | Web | — |
 | Contraste | Novas cores | Cálculo WCAG (tabela abaixo) | Todos os pares de texto ≥ 4,5:1 | Cálculo | Conferir em aparelho |
 | Nomes acessíveis e papéis | Rótulos, papéis e estados nos controles | Árvore de acessibilidade na web | Ex.: botão “Mover para frente”, “Aplicar Limiar de Detecção”, switch “Modo de Simulação” desabilitado | Web | TalkBack: **não verificado** |
 | Rótulos da barra de abas cortados | Altura, `lineHeight` e `flexShrink: 0` | Captura da barra de abas | “Configurações” sem corte | Web | Barra de navegação Android: não verificado |
@@ -136,7 +137,7 @@ Na web, use dados fictícios em Cadastro/Login (ficam no `localStorage` do naveg
 
 ## Evidências
 
-- `docs/evidencias/web/01–22-*.png`: capturas do build final, 390×844 a 2×.
+- `docs/evidencias/web/01–23-*.png`: capturas do build final, 390×844 a 2×.
 - `docs/evidencias/web/roteiro-web.log.json`: texto observado em cada etapa.
 - `docs/evidencias/roteiro-simulacao-web.gif`: sequência das capturas (não é gravação de tela) com navegação, fogo/cancelamento, edição inválida, emergência em AUTO e falha parcial.
 - `docs/evidencias/web-versao-inicial-a806ef9.png`: versão inicial na web (página em branco). Para gerá-la, o `web.output` da cópia temporária foi trocado para `single`, e o código não foi alterado.
