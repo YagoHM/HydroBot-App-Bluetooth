@@ -59,7 +59,7 @@ export default function LoginScreen() {
         <TextInput
           style={styles.input}
           placeholder="E-mail"
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor="#6B7280"
           keyboardType="email-address"
           autoCapitalize="none"
           value={email}
@@ -69,18 +69,22 @@ export default function LoginScreen() {
         <TextInput
           style={styles.input}
           placeholder="Senha"
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor="#6B7280"
           secureTextEntry
           value={password}
           onChangeText={setPassword}
           onSubmitEditing={handleLogin}
         />
 
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
+        <TouchableOpacity style={styles.button} onPress={handleLogin} accessibilityRole="button">
           <Text style={styles.buttonText}>Entrar</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => router.replace('/register')}>
+        <TouchableOpacity
+          onPress={() => router.replace('/register')}
+          accessibilityRole="link"
+          style={{ minHeight: 48, justifyContent: 'center' }}
+        >
           <Text style={styles.link}>Não possui conta? Cadastre-se</Text>
         </TouchableOpacity>
       </View>

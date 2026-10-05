@@ -1,415 +1,474 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import EmergencyStopBar from '../../components/EmergencyStopBar';
+import ModeBanner from '../../components/ModeBanner';
+import NotConnectedCard from '../../components/NotConnectedCard';
 import { useBluetooth } from '../../context/BluetoothContext';
+import {
+  DEFAULT_FIRE_PARAMS,
+  FIRE_LEVEL_FILL_COLOR,
+  FIRE_LEVEL_ICON,
+  FIRE_LEVEL_LABEL,
+  FIRE_LEVEL_SHORT,
+  FIRE_LEVEL_TEXT_COLOR,
+  classifyIntensity,
+  type FireParams,
+} from '../../services/fireLevels';
+import { LOW_WATER_PUMP_BLOCK, PUMP_PWM_MAX, type Telemetry } from '../../services/telemetry';
+
+/** Após este intervalo sem telemetria, os dados deixam de ser tratados como atuais. */
+const STALE_AFTER_MS = 5000;
+
+function useNow(intervalMs: number) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), intervalMs);
+    return () => clearInterval(id);
+  }, [intervalMs]);
+  return now;
+}
+
+function waterInfo(level: number) {
+  if (level >= 60) return { icon: 'water' as const, color: '#1D4ED8', text: 'Nível adequado' };
+  if (level >= 40) return { icon: 'water-outline' as const, color: '#92400E', text: 'Nível médio' };
+  if (level > LOW_WATER_PUMP_BLOCK)
+    return { icon: 'warning' as const, color: '#B91C1C', text: 'Nível baixo — reabasteça' };
+  return {
+    icon: 'alert-circle' as const,
+    color: '#991B1B',
+    text: 'CRÍTICO — reabasteça. Ligar a bomba está bloqueado.',
+  };
+}
+
+function Missing({ text = 'Sem leitura' }: { text?: string }) {
+  return (
+    <View style={styles.missing}>
+      <Ionicons name="remove-circle-outline" size={18} color="#4B5563" />
+      <Text style={styles.missingText}>{text}</Text>
+    </View>
+  );
+}
 
 export default function MonitorScreen() {
   const { telemetry, isConnected, isMockMode } = useBluetooth();
-  const showTelemetry = isConnected || isMockMode;
-
-  const getWaterIcon = (level: number) => {
-    if (level >= 60) return 'water';
-    if (level >= 40) return 'water-outline';
-    if (level >= 20) return 'water-outline';
-    return 'alert-circle';
-  };
-
-  const getWaterColor = (level: number) => {
-    if (level >= 60) return '#3B82F6';
-    if (level >= 40) return '#F59E0B';
-    if (level >= 20) return '#EF4444';
-    return '#991B1B';
-  };
-
-  const getFireIntensityLevel = (intensity: number) => {
-    if (intensity >= 350) return 'PERIGO - Muito Perto';
-    if (intensity >= 200) return 'IDEAL - Combatendo';
-    if (intensity >= 50) return 'DETECTADO - Aproximando';
-    return 'NENHUM';
-  };
-
-  const getFireColor = (intensity: number) => {
-    if (intensity >= 350) return '#DC2626';
-    if (intensity >= 200) return '#F59E0B';
-    if (intensity >= 50) return '#FCD34D';
-    return '#D1D5DB';
-  };
-
-  const getSensorColor = (delta: number) => {
-    if (delta >= 200) return '#DC2626'; // Vermelho - fogo detectado
-    if (delta >= 100) return '#F59E0B'; // Laranja - calor
-    if (delta >= 50) return '#FCD34D';  // Amarelo - morno
-    return '#10B981'; // Verde - normal
-  };
-
-  const getSensorIntensity = (delta: number) => {
-    const maxDelta = 400;
-    return Math.min((delta / maxDelta) * 100, 100);
-  };
+  const now = useNow(1000);
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        {!showTelemetry ? (
-          <View style={styles.disconnectedCard}>
-            <Ionicons name="bluetooth-outline" size={64} color="#D1D5DB" />
-            <Text style={styles.disconnectedTitle}>Não Conectado</Text>
-            <Text style={styles.disconnectedText}>
-              Conecte-se ao HydroBot para ver os dados
+    <View style={styles.screen}>
+      <ModeBanner />
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        {!isConnected ? (
+          <NotConnectedCard what="ver os dados" />
+        ) : !telemetry ? (
+          <View style={styles.waitingCard} accessible accessibilityLiveRegion="polite">
+            <Ionicons name="hourglass-outline" size={48} color="#4B5563" />
+            <Text style={styles.waitingTitle} accessibilityRole="header">
+              {isMockMode ? 'Preparando simulação…' : 'Aguardando dados'}
+            </Text>
+            <Text style={styles.waitingText}>
+              {isMockMode
+                ? 'A primeira leitura simulada chega em instantes.'
+                : 'Conectado, mas o HydroBot ainda não enviou telemetria. Nenhum valor é exibido até lá.'}
             </Text>
           </View>
         ) : (
-          <>
-            {/* Nível de Água */}
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardTitleRow}>
-                  <Ionicons 
-                    name={getWaterIcon(telemetry?.water || 0)} 
-                    size={32} 
-                    color={getWaterColor(telemetry?.water || 0)} 
-                  />
-                  <Text style={styles.cardTitle}>Nível de Água</Text>
-                </View>
-              </View>
+          <TelemetryView telemetry={telemetry} now={now} />
+        )}
+      </ScrollView>
+      <EmergencyStopBar />
+    </View>
+  );
+}
 
-              <View style={styles.metricContainer}>
-                <Text style={[styles.metricValue, { color: getWaterColor(telemetry?.water || 0) }]}>
-                  {telemetry?.water || 0}%
-                </Text>
-                
-                {/* Barra de progresso */}
-                <View style={styles.progressBar}>
-                  <View 
-                    style={[
-                      styles.progressFill,
-                      { 
-                        width: `${telemetry?.water || 0}%`,
-                        backgroundColor: getWaterColor(telemetry?.water || 0)
-                      }
-                    ]} 
-                  />
-                </View>
+function TelemetryView({ telemetry: t, now }: { telemetry: Telemetry; now: number }) {
+  const sim = t.source === 'sim';
+  const ageMs = now - t.receivedAt;
+  const stale = ageMs > STALE_AFTER_MS;
 
-                <Text style={styles.metricDescription}>
-                  {(telemetry?.water || 0) >= 60 && 'Nível adequado'}
-                  {(telemetry?.water || 0) >= 40 && (telemetry?.water || 0) < 60 && 'Nível médio'}
-                  {(telemetry?.water || 0) >= 20 && (telemetry?.water || 0) < 40 && 'Nível baixo - Reabasteça'}
-                  {(telemetry?.water || 0) < 20 && 'CRÍTICO - Reabasteça imediatamente!'}
-                </Text>
-              </View>
+  const deviceParams =
+    t.fire_thresh !== undefined && t.fire_ideal !== undefined && t.fire_danger !== undefined;
+  const params: FireParams = deviceParams
+    ? { thresh: t.fire_thresh!, ideal: t.fire_ideal!, danger: t.fire_danger! }
+    : DEFAULT_FIRE_PARAMS;
+  const level = t.intensity !== undefined ? classifyIntensity(t.intensity, params) : null;
+
+  return (
+    <>
+      <View
+        style={[styles.sourceCard, stale && styles.sourceCardStale]}
+        accessible
+        accessibilityLabel={
+          stale
+            ? `Dados desatualizados: última leitura há ${Math.round(ageMs / 1000)} segundos`
+            : sim
+              ? 'Leituras simuladas, geradas pelo app'
+              : 'Leituras recebidas do HydroBot por Bluetooth BLE'
+        }
+      >
+        <Ionicons
+          name={stale ? 'time-outline' : sim ? 'flask' : 'radio'}
+          size={18}
+          color={stale ? '#991B1B' : '#374151'}
+        />
+        <Text style={[styles.sourceText, stale && styles.sourceTextStale]}>
+          {stale
+            ? `Dados desatualizados — última leitura há ${Math.round(ageMs / 1000)} s`
+            : sim
+              ? 'Leituras SIMULADAS · geradas pelo app'
+              : 'Leituras do HydroBot (BLE)'}
+        </Text>
+      </View>
+
+      {/* Nível de Água */}
+      <View style={styles.card}>
+        <View style={styles.cardTitleRow}>
+          <Ionicons
+            name={t.water !== undefined ? waterInfo(t.water).icon : 'water-outline'}
+            size={32}
+            color={t.water !== undefined ? waterInfo(t.water).color : '#6B7280'}
+          />
+          <Text style={styles.cardTitle} accessibilityRole="header">
+            Nível de Água{sim ? ' (simulado)' : ''}
+          </Text>
+        </View>
+        {t.water === undefined ? (
+          <Missing />
+        ) : (
+          <View style={styles.metricContainer}>
+            <Text style={[styles.metricValue, { color: waterInfo(t.water).color }]}>
+              {t.water}%
+            </Text>
+            <View
+              style={styles.progressBar}
+              accessible
+              accessibilityRole="progressbar"
+              accessibilityLabel="Nível de água"
+              accessibilityValue={{ min: 0, max: 100, now: t.water, text: `${t.water}%` }}
+            >
+              <View
+                style={[
+                  styles.progressFill,
+                  { width: `${t.water}%`, backgroundColor: waterInfo(t.water).color },
+                ]}
+              />
             </View>
-
-            {/* Sensores de Fogo - 3 Sensores */}
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardTitleRow}>
-                  <Ionicons name="flame" size={32} color="#DC2626" />
-                  <Text style={styles.cardTitle}>Sensores de Fogo</Text>
-                  {telemetry?.calibrated && (
-                    <View style={styles.calibratedBadge}>
-                      <Ionicons name="checkmark-circle" size={16} color="#10B981" />
-                      <Text style={styles.calibratedText}>Calibrado</Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-
-              <View style={styles.sensorsContainer}>
-                {/* Sensor Esquerdo */}
-                <View style={styles.sensorCard}>
-                  <View style={styles.sensorHeader}>
-                    <Ionicons 
-                      name="arrow-back" 
-                      size={20} 
-                      color={getSensorColor(telemetry?.delta_left || 0)} 
-                    />
-                    <Text style={styles.sensorTitle}>Esquerdo</Text>
-                  </View>
-                  
-                  <Text style={[styles.sensorValue, { color: getSensorColor(telemetry?.delta_left || 0) }]}>
-                    {telemetry?.sensor_left || 0}
-                  </Text>
-                  
-                  <View style={styles.sensorDelta}>
-                    <Text style={styles.sensorDeltaLabel}>Δ:</Text>
-                    <Text style={[styles.sensorDeltaValue, { color: getSensorColor(telemetry?.delta_left || 0) }]}>
-                      {telemetry?.delta_left || 0}
-                    </Text>
-                  </View>
-
-                  <View style={styles.sensorBar}>
-                    <View 
-                      style={[
-                        styles.sensorBarFill,
-                        { 
-                          height: `${getSensorIntensity(telemetry?.delta_left || 0)}%`,
-                          backgroundColor: getSensorColor(telemetry?.delta_left || 0)
-                        }
-                      ]} 
-                    />
-                  </View>
-                </View>
-
-                {/* Sensor Central */}
-                <View style={styles.sensorCard}>
-                  <View style={styles.sensorHeader}>
-                    <Ionicons 
-                      name="arrow-up" 
-                      size={20} 
-                      color={getSensorColor(telemetry?.delta_center || 0)} 
-                    />
-                    <Text style={styles.sensorTitle}>Centro</Text>
-                  </View>
-                  
-                  <Text style={[styles.sensorValue, { color: getSensorColor(telemetry?.delta_center || 0) }]}>
-                    {telemetry?.sensor_center || 0}
-                  </Text>
-                  
-                  <View style={styles.sensorDelta}>
-                    <Text style={styles.sensorDeltaLabel}>Δ:</Text>
-                    <Text style={[styles.sensorDeltaValue, { color: getSensorColor(telemetry?.delta_center || 0) }]}>
-                      {telemetry?.delta_center || 0}
-                    </Text>
-                  </View>
-
-                  <View style={styles.sensorBar}>
-                    <View 
-                      style={[
-                        styles.sensorBarFill,
-                        { 
-                          height: `${getSensorIntensity(telemetry?.delta_center || 0)}%`,
-                          backgroundColor: getSensorColor(telemetry?.delta_center || 0)
-                        }
-                      ]} 
-                    />
-                  </View>
-                </View>
-
-                {/* Sensor Direito */}
-                <View style={styles.sensorCard}>
-                  <View style={styles.sensorHeader}>
-                    <Ionicons 
-                      name="arrow-forward" 
-                      size={20} 
-                      color={getSensorColor(telemetry?.delta_right || 0)} 
-                    />
-                    <Text style={styles.sensorTitle}>Direito</Text>
-                  </View>
-                  
-                  <Text style={[styles.sensorValue, { color: getSensorColor(telemetry?.delta_right || 0) }]}>
-                    {telemetry?.sensor_right || 0}
-                  </Text>
-                  
-                  <View style={styles.sensorDelta}>
-                    <Text style={styles.sensorDeltaLabel}>Δ:</Text>
-                    <Text style={[styles.sensorDeltaValue, { color: getSensorColor(telemetry?.delta_right || 0) }]}>
-                      {telemetry?.delta_right || 0}
-                    </Text>
-                  </View>
-
-                  <View style={styles.sensorBar}>
-                    <View 
-                      style={[
-                        styles.sensorBarFill,
-                        { 
-                          height: `${getSensorIntensity(telemetry?.delta_right || 0)}%`,
-                          backgroundColor: getSensorColor(telemetry?.delta_right || 0)
-                        }
-                      ]} 
-                    />
-                  </View>
-                </View>
-              </View>
-
-              {/* Valores Base (Calibração) */}
-              {telemetry?.calibrated && (
-                <View style={styles.baseValues}>
-                  <Text style={styles.baseTitle}>Valores Base (Calibração)</Text>
-                  <View style={styles.baseRow}>
-                    <View style={styles.baseItem}>
-                      <Text style={styles.baseLabel}>Esq:</Text>
-                      <Text style={styles.baseValue}>{telemetry?.base_left || 0}</Text>
-                    </View>
-                    <View style={styles.baseItem}>
-                      <Text style={styles.baseLabel}>Centro:</Text>
-                      <Text style={styles.baseValue}>{telemetry?.base_center || 0}</Text>
-                    </View>
-                    <View style={styles.baseItem}>
-                      <Text style={styles.baseLabel}>Dir:</Text>
-                      <Text style={styles.baseValue}>{telemetry?.base_right || 0}</Text>
-                    </View>
-                  </View>
-                </View>
-              )}
-            </View>
-
-            {/* Intensidade do Fogo (Resumo) */}
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardTitleRow}>
-                  <Ionicons 
-                    name="analytics" 
-                    size={32} 
-                    color={getFireColor(telemetry?.intensity || 0)} 
-                  />
-                  <Text style={styles.cardTitle}>Detecção de Fogo</Text>
-                </View>
-              </View>
-
-              <View style={styles.metricContainer}>
-                {telemetry?.fire ? (
-                  <View style={styles.fireDetected}>
-                    <Ionicons name="flame" size={48} color="#DC2626" />
-                    <Text style={styles.fireDetectedText}>FOGO DETECTADO!</Text>
-                  </View>
-                ) : (
-                  <View style={styles.fireDetected}>
-                    <Ionicons name="checkmark-circle" size={48} color="#10B981" />
-                    <Text style={[styles.fireDetectedText, { color: '#10B981' }]}>
-                      Nenhum fogo detectado
-                    </Text>
-                  </View>
-                )}
-
-                <Text style={styles.metricLabel}>Intensidade Máxima:</Text>
-                <Text style={[styles.metricValue, { color: getFireColor(telemetry?.intensity || 0) }]}>
-                  {telemetry?.intensity || 0}
-                </Text>
-
-                <View style={styles.fireLevel}>
-                  <Ionicons 
-                    name="analytics" 
-                    size={20} 
-                    color={getFireColor(telemetry?.intensity || 0)} 
-                  />
-                  <Text style={[styles.fireLevelText, { color: getFireColor(telemetry?.intensity || 0) }]}>
-                    {getFireIntensityLevel(telemetry?.intensity || 0)}
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Estado da Bomba */}
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardTitleRow}>
-                  <Ionicons 
-                    name="speedometer" 
-                    size={32} 
-                    color={(telemetry?.pump || 0) > 0 ? '#3B82F6' : '#D1D5DB'} 
-                  />
-                  <Text style={styles.cardTitle}>Bomba de Água</Text>
-                </View>
-              </View>
-
-              <View style={styles.metricContainer}>
-                <View style={styles.pumpStatus}>
-                  <View style={[
-                    styles.pumpIndicator,
-                    { backgroundColor: (telemetry?.pump || 0) > 0 ? '#10B981' : '#EF4444' }
-                  ]} />
-                  <Text style={styles.pumpStatusText}>
-                    {(telemetry?.pump || 0) > 0 ? 'LIGADA' : 'DESLIGADA'}
-                  </Text>
-                </View>
-
-                {(telemetry?.pump || 0) > 0 && (
-                  <>
-                    <Text style={styles.metricValue}>
-                      PWM: {telemetry?.pump}
-                    </Text>
-                    
-                    <View style={styles.progressBar}>
-                      <View 
-                        style={[
-                          styles.progressFill,
-                          { 
-                            width: `${((telemetry?.pump || 0) / 255) * 100}%`,
-                            backgroundColor: '#3B82F6'
-                          }
-                        ]} 
-                      />
-                    </View>
-
-                    <Text style={styles.metricDescription}>
-                      Potência: {Math.round(((telemetry?.pump || 0) / 255) * 100)}%
-                    </Text>
-                  </>
-                )}
-              </View>
-            </View>
-
-            {/* Status do Sistema */}
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardTitleRow}>
-                  <Ionicons name="information-circle" size={32} color="#DC2626" />
-                  <Text style={styles.cardTitle}>Status do Sistema</Text>
-                </View>
-              </View>
-
-              <View style={styles.infoGrid}>
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Modo</Text>
-                  <View style={styles.infoValueContainer}>
-                    <Ionicons 
-                      name={telemetry?.mode === 'AUTO' ? 'sync' : 'hand-left'} 
-                      size={20} 
-                      color="#DC2626" 
-                    />
-                    <Text style={styles.infoValue}>{telemetry?.mode || 'N/A'}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Velocidade</Text>
-                  <Text style={styles.infoValue}>{telemetry?.speed || 100}%</Text>
-                </View>
-
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>PWM Mín</Text>
-                  <Text style={styles.infoValue}>{telemetry?.pwm_min || 180}</Text>
-                </View>
-
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>PWM Máx</Text>
-                  <Text style={styles.infoValue}>{telemetry?.pwm_max || 255}</Text>
-                </View>
-              </View>
-            </View>
-          </>
+            <Text style={[styles.metricDescription, { color: waterInfo(t.water).color }]}>
+              {waterInfo(t.water).text}
+            </Text>
+          </View>
         )}
       </View>
-    </ScrollView>
+
+      {/* Detecção de Fogo (resumo) */}
+      <View style={styles.card}>
+        <View style={styles.cardTitleRow}>
+          <Ionicons
+            name="flame"
+            size={32}
+            color={level ? FIRE_LEVEL_FILL_COLOR[level] : '#6B7280'}
+          />
+          <Text style={styles.cardTitle} accessibilityRole="header">
+            Detecção de Fogo
+          </Text>
+        </View>
+
+        <View style={styles.metricContainer}>
+          {t.fire === undefined ? (
+            <Missing text="Estado de fogo sem leitura" />
+          ) : t.fire ? (
+            <View style={styles.fireState} accessible accessibilityRole="alert">
+              <Ionicons name="flame" size={44} color="#B91C1C" />
+              <Text style={styles.fireStateText}>
+                {sim ? 'FOGO SIMULADO DETECTADO' : 'FOGO DETECTADO'}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.fireState}>
+              <Ionicons name="checkmark-circle" size={44} color="#047857" />
+              <Text style={[styles.fireStateText, { color: '#047857' }]}>
+                Nenhum fogo detectado
+              </Text>
+            </View>
+          )}
+
+          <Text style={styles.metricLabel}>
+            {sim ? 'Intensidade simulada — unidade relativa' : 'Intensidade — unidade relativa'}
+          </Text>
+          {t.intensity === undefined || !level ? (
+            <Missing />
+          ) : (
+            <>
+              <Text style={[styles.metricValue, { color: FIRE_LEVEL_TEXT_COLOR[level] }]}>
+                {t.intensity}
+              </Text>
+              <View style={styles.fireLevel}>
+                <Ionicons
+                  name={FIRE_LEVEL_ICON[level]}
+                  size={20}
+                  color={FIRE_LEVEL_TEXT_COLOR[level]}
+                />
+                <Text style={[styles.fireLevelText, { color: FIRE_LEVEL_TEXT_COLOR[level] }]}>
+                  {FIRE_LEVEL_LABEL[level]}
+                </Text>
+              </View>
+            </>
+          )}
+
+          <Text style={styles.paramsText}>
+            Faixas: detecção ≥ {params.thresh} · referência ≥ {params.ideal} · perigo ≥{' '}
+            {params.danger}
+            {'\n'}
+            {deviceParams
+              ? sim
+                ? 'Parâmetros aplicados na simulação.'
+                : 'Parâmetros informados pelo dispositivo.'
+              : 'Valores padrão do app — o dispositivo não informou seus parâmetros.'}
+          </Text>
+        </View>
+      </View>
+
+      {/* Sensores */}
+      <View style={styles.card}>
+        <View style={styles.cardTitleRow}>
+          <Ionicons name="thermometer-outline" size={32} color="#B91C1C" />
+          <Text style={styles.cardTitle} accessibilityRole="header">
+            Sensores de Fogo{sim ? ' (simulados)' : ''}
+          </Text>
+          {t.calibrated && (
+            <View style={styles.calibratedBadge}>
+              <Ionicons name="checkmark-circle" size={16} color="#047857" />
+              <Text style={styles.calibratedText}>
+                {sim ? 'Calibração simulada' : 'Calibrado (informado)'}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.sensorsContainer}>
+          <SensorCard name="Esquerdo" icon="arrow-back" value={t.sensor_left} delta={t.delta_left} params={params} />
+          <SensorCard name="Centro" icon="arrow-up" value={t.sensor_center} delta={t.delta_center} params={params} />
+          <SensorCard name="Direito" icon="arrow-forward" value={t.sensor_right} delta={t.delta_right} params={params} />
+        </View>
+
+        {t.calibrated &&
+          t.base_left !== undefined &&
+          t.base_center !== undefined &&
+          t.base_right !== undefined && (
+            <View style={styles.baseValues}>
+              <Text style={styles.baseTitle}>
+                Valores base {sim ? '(simulados)' : '(informados pelo dispositivo)'}
+              </Text>
+              <View style={styles.baseRow}>
+                <BaseItem label="Esq" value={t.base_left} />
+                <BaseItem label="Centro" value={t.base_center} />
+                <BaseItem label="Dir" value={t.base_right} />
+              </View>
+            </View>
+          )}
+      </View>
+
+      {/* Bomba */}
+      <View style={styles.card}>
+        <View style={styles.cardTitleRow}>
+          <Ionicons
+            name="speedometer"
+            size={32}
+            color={t.pump !== undefined && t.pump > 0 ? '#1D4ED8' : '#6B7280'}
+          />
+          <Text style={styles.cardTitle} accessibilityRole="header">
+            Bomba de Água
+          </Text>
+        </View>
+        {t.pump === undefined ? (
+          <Missing />
+        ) : (
+          <View style={styles.metricContainer}>
+            <View style={styles.pumpStatus}>
+              <Ionicons
+                name={t.pump > 0 ? 'play-circle' : 'pause-circle'}
+                size={22}
+                color={t.pump > 0 ? '#047857' : '#4B5563'}
+              />
+              <Text style={styles.pumpStatusText}>{t.pump > 0 ? 'LIGADA' : 'DESLIGADA'}</Text>
+            </View>
+            {t.pump > 0 && (
+              <>
+                <Text style={styles.pumpValue}>
+                  PWM {t.pump} de {PUMP_PWM_MAX}
+                </Text>
+                <View style={styles.progressBar}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      { width: `${(t.pump / PUMP_PWM_MAX) * 100}%`, backgroundColor: '#1D4ED8' },
+                    ]}
+                  />
+                </View>
+                <Text style={styles.metricDescription}>
+                  Potência: {Math.round((t.pump / PUMP_PWM_MAX) * 100)}%
+                </Text>
+              </>
+            )}
+          </View>
+        )}
+      </View>
+
+      {/* Status do Sistema */}
+      <View style={styles.card}>
+        <View style={styles.cardTitleRow}>
+          <Ionicons name="information-circle" size={32} color="#B91C1C" />
+          <Text style={styles.cardTitle} accessibilityRole="header">
+            Status do Sistema
+          </Text>
+        </View>
+        <View style={styles.infoGrid}>
+          <InfoItem
+            label="Modo"
+            value={t.mode === undefined ? 'Sem leitura' : t.mode === 'AUTO' ? 'Automático' : 'Manual'}
+            icon={t.mode === 'AUTO' ? 'sync' : 'hand-left'}
+          />
+          <InfoItem label="Velocidade" value={t.speed === undefined ? 'Sem leitura' : `${t.speed}%`} />
+          <InfoItem label="PWM Mín" value={t.pwm_min === undefined ? 'Sem leitura' : String(t.pwm_min)} />
+          <InfoItem label="PWM Máx" value={t.pwm_max === undefined ? 'Sem leitura' : String(t.pwm_max)} />
+        </View>
+      </View>
+    </>
+  );
+}
+
+function SensorCard({
+  name,
+  icon,
+  value,
+  delta,
+  params,
+}: {
+  name: string;
+  icon: 'arrow-back' | 'arrow-up' | 'arrow-forward';
+  value?: number;
+  delta?: number;
+  params: FireParams;
+}) {
+  const level = delta !== undefined ? classifyIntensity(delta, params) : null;
+  const textColor = level ? FIRE_LEVEL_TEXT_COLOR[level] : '#4B5563';
+  const pct = delta !== undefined ? Math.min((delta / Math.max(params.danger, 1)) * 100, 100) : 0;
+  return (
+    <View
+      style={styles.sensorCard}
+      accessible
+      accessibilityLabel={
+        value === undefined || delta === undefined || !level
+          ? `Sensor ${name}: sem leitura`
+          : `Sensor ${name}: leitura ${Math.round(value)}, variação ${Math.round(delta)}, ${FIRE_LEVEL_SHORT[level]}`
+      }
+    >
+      <View style={styles.sensorHeader}>
+        <Ionicons name={icon} size={18} color="#374151" />
+        <Text style={styles.sensorTitle}>{name}</Text>
+      </View>
+      {value === undefined || delta === undefined || !level ? (
+        <Text style={styles.sensorMissing}>Sem leitura</Text>
+      ) : (
+        <>
+          <Text style={styles.sensorValue}>{Math.round(value)}</Text>
+          <Text style={[styles.sensorDeltaValue, { color: textColor }]}>Δ {Math.round(delta)}</Text>
+          <Text style={[styles.sensorLevel, { color: textColor }]}>{FIRE_LEVEL_SHORT[level]}</Text>
+          <View style={styles.sensorBar}>
+            <View
+              style={[
+                styles.sensorBarFill,
+                { height: `${pct}%`, backgroundColor: FIRE_LEVEL_FILL_COLOR[level] },
+              ]}
+            />
+          </View>
+        </>
+      )}
+    </View>
+  );
+}
+
+function BaseItem({ label, value }: { label: string; value: number }) {
+  return (
+    <View style={styles.baseItem}>
+      <Text style={styles.baseLabel}>{label}:</Text>
+      <Text style={styles.baseValue}>{value}</Text>
+    </View>
+  );
+}
+
+function InfoItem({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: string;
+  icon?: 'sync' | 'hand-left';
+}) {
+  return (
+    <View style={styles.infoItem} accessible accessibilityLabel={`${label}: ${value}`}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <View style={styles.infoValueContainer}>
+        {icon && <Ionicons name={icon} size={18} color="#B91C1C" />}
+        <Text style={styles.infoValue}>{value}</Text>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
     backgroundColor: '#F9FAFB',
+  },
+  container: {
+    flex: 1,
   },
   content: {
     padding: 16,
   },
-  disconnectedCard: {
+  waitingCard: {
     backgroundColor: '#fff',
-    padding: 60,
+    padding: 32,
     borderRadius: 12,
     alignItems: 'center',
-    marginTop: 40,
+    marginTop: 24,
   },
-  disconnectedTitle: {
-    fontSize: 24,
+  waitingTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#6B7280',
-    marginTop: 16,
+    color: '#374151',
+    marginTop: 12,
   },
-  disconnectedText: {
+  waitingText: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: '#4B5563',
     marginTop: 8,
     textAlign: 'center',
+    lineHeight: 20,
+  },
+  sourceCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#E5E7EB',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  sourceCardStale: {
+    backgroundColor: '#FEE2E2',
+  },
+  sourceText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  sourceTextStale: {
+    color: '#991B1B',
   },
   card: {
     backgroundColor: '#fff',
@@ -422,19 +481,31 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  cardHeader: {
-    marginBottom: 16,
-  },
   cardTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#111827',
-    marginLeft: 12,
+    marginLeft: 4,
     flex: 1,
+  },
+  missing: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+  },
+  missingText: {
+    fontSize: 15,
+    color: '#4B5563',
+    fontWeight: '600',
   },
   calibratedBadge: {
     flexDirection: 'row',
@@ -445,8 +516,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   calibratedText: {
-    fontSize: 11,
-    color: '#10B981',
+    fontSize: 12,
+    // #047857 sobre #ECFDF5: contraste 5,21:1
+    color: '#047857',
     fontWeight: '600',
     marginLeft: 4,
   },
@@ -454,21 +526,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   metricValue: {
-    fontSize: 48,
+    fontSize: 44,
     fontWeight: 'bold',
     color: '#111827',
   },
   metricLabel: {
     fontSize: 14,
-    color: '#6B7280',
-    marginTop: 16,
+    color: '#4B5563',
+    marginTop: 8,
     marginBottom: 4,
+    textAlign: 'center',
   },
   metricDescription: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#4B5563',
     marginTop: 12,
     textAlign: 'center',
+    fontWeight: '600',
   },
   progressBar: {
     width: '100%',
@@ -485,33 +559,34 @@ const styles = StyleSheet.create({
   pumpStatus: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  pumpIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 8,
+    gap: 8,
   },
   pumpStatusText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: '#111827',
   },
-  fireDetected: {
-    alignItems: 'center',
-    marginBottom: 16,
+  pumpValue: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginTop: 8,
   },
-  fireDetectedText: {
+  fireState: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  fireStateText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#DC2626',
+    color: '#B91C1C',
     marginTop: 8,
+    textAlign: 'center',
   },
   fireLevel: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,
     backgroundColor: '#F3F4F6',
@@ -519,56 +594,63 @@ const styles = StyleSheet.create({
   },
   fireLevelText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     marginLeft: 8,
+  },
+  paramsText: {
+    fontSize: 12,
+    color: '#4B5563',
+    marginTop: 12,
+    textAlign: 'center',
+    lineHeight: 17,
   },
   sensorsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 16,
+    gap: 8,
+    marginBottom: 12,
   },
   sensorCard: {
     flex: 1,
     backgroundColor: '#F9FAFB',
-    padding: 12,
+    padding: 10,
     borderRadius: 8,
     alignItems: 'center',
   },
   sensorHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   sensorTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#374151',
     marginLeft: 4,
+  },
+  sensorMissing: {
+    fontSize: 12,
+    color: '#4B5563',
+    textAlign: 'center',
+    paddingVertical: 12,
   },
   sensorValue: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#111827',
-    marginBottom: 4,
-  },
-  sensorDelta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  sensorDeltaLabel: {
-    fontSize: 11,
-    color: '#9CA3AF',
-    marginRight: 4,
   },
   sensorDeltaValue: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
+  },
+  sensorLevel: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 6,
   },
   sensorBar: {
     width: '100%',
-    height: 60,
+    height: 48,
     backgroundColor: '#E5E7EB',
     borderRadius: 4,
     overflow: 'hidden',
@@ -582,12 +664,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
     padding: 12,
     borderRadius: 8,
-    marginTop: 8,
   },
   baseTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#374151',
     marginBottom: 8,
   },
   baseRow: {
@@ -599,8 +680,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   baseLabel: {
-    fontSize: 10,
-    color: '#9CA3AF',
+    fontSize: 12,
+    color: '#4B5563',
     marginBottom: 2,
   },
   baseValue: {
@@ -622,17 +703,17 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#4B5563',
     marginBottom: 4,
   },
   infoValueContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
   },
   infoValue: {
     fontSize: 16,
     fontWeight: '600',
     color: '#111827',
-    marginLeft: 4,
   },
 });

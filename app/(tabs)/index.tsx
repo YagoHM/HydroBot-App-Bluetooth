@@ -1,79 +1,136 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useBluetooth } from '../../context/BluetoothContext';
-import { Device } from 'react-native-ble-plx';
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import ModeBanner from '../../components/ModeBanner';
+import { useBluetooth, type DeviceInfo } from '../../context/BluetoothContext';
 
 export default function HomeScreen() {
-  const { devices, isScanning, startScan, isConnected, device, connect, disconnect } = useBluetooth();
+  const {
+    devices,
+    isScanning,
+    startScan,
+    stopScan,
+    connectionState,
+    device,
+    connect,
+    disconnect,
+    isMockMode,
+  } = useBluetooth();
+  const connecting = connectionState === 'connecting';
 
-  const renderDevice = ({ item }: { item: Device }) => (
-    <TouchableOpacity style={styles.deviceCard} onPress={() => connect(item)}>
+  const renderDevice = ({ item }: { item: DeviceInfo }) => (
+    <TouchableOpacity
+      style={styles.deviceCard}
+      onPress={() => connect(item)}
+      disabled={connecting}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: connecting }}
+      accessibilityLabel={`Conectar a ${item.name || 'dispositivo desconhecido'}${item.simulated ? ', dispositivo simulado' : ''}`}
+    >
       <View style={styles.deviceInfo}>
-        <Ionicons name="bluetooth" size={32} color="#DC2626" />
+        <Ionicons name={item.simulated ? 'flask' : 'bluetooth'} size={32} color="#DC2626" />
         <View style={styles.deviceText}>
           <Text style={styles.deviceName}>{item.name || 'Dispositivo Desconhecido'}</Text>
-          <Text style={styles.deviceId}>{item.id}</Text>
+          <Text style={styles.deviceId}>
+            {item.simulated ? 'Dispositivo simulado — sem robô físico' : `BLE · ${item.id}`}
+          </Text>
         </View>
       </View>
-      <Ionicons name="chevron-forward" size={24} color="#9CA3AF" />
+      <Ionicons name="chevron-forward" size={24} color="#6B7280" />
     </TouchableOpacity>
   );
 
-  return (
-    <View style={styles.container}>
-      {isConnected ? (
+  if (connectionState === 'connected') {
+    const simulated = device?.simulated ?? isMockMode;
+    return (
+      <View style={styles.container}>
+        <ModeBanner />
         <View style={styles.connectedContainer}>
           <View style={styles.connectedCard}>
-            <Ionicons name="checkmark-circle" size={64} color="#10B981" />
-            <Text style={styles.connectedTitle}>Conectado</Text>
+            <Ionicons
+              name={simulated ? 'flask' : 'checkmark-circle'}
+              size={64}
+              color={simulated ? '#B45309' : '#047857'}
+            />
+            <Text
+              style={[styles.connectedTitle, simulated && styles.connectedTitleSim]}
+              accessibilityRole="header"
+            >
+              {simulated ? 'Conectado ao dispositivo simulado' : 'Conectado via Bluetooth BLE'}
+            </Text>
             <Text style={styles.connectedName}>{device?.name}</Text>
-            <Text style={styles.connectedSubtext}>HydroBot está online e pronto!</Text>
-            <TouchableOpacity style={styles.disconnectButton} onPress={disconnect}>
+            <Text style={styles.connectedSubtext}>
+              {simulated
+                ? 'Os dados e as respostas são gerados pelo app para testar a interface. Nenhum robô físico está sendo controlado.'
+                : 'Conexão BLE estabelecida. As leituras aparecem no Monitor quando o robô enviar telemetria.'}
+            </Text>
+            <TouchableOpacity
+              style={styles.disconnectButton}
+              onPress={disconnect}
+              accessibilityRole="button"
+              accessibilityLabel={simulated ? 'Desconectar do dispositivo simulado' : 'Desconectar do HydroBot'}
+            >
               <Ionicons name="close-circle" size={20} color="#fff" />
               <Text style={styles.disconnectText}>Desconectar</Text>
             </TouchableOpacity>
           </View>
         </View>
-      ) : (
-        <>
-          <View style={styles.header}>
-            <Text style={styles.title}>Dispositivos Bluetooth</Text>
-            <Text style={styles.subtitle}>
-              {isScanning ? 'Procurando dispositivos...' : 'Busque por HC-05 ou HC-06'}
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <ModeBanner />
+      <View style={styles.header}>
+        <Text style={styles.title} accessibilityRole="header">
+          {isMockMode ? 'Dispositivo simulado' : 'Dispositivos Bluetooth'}
+        </Text>
+        <Text style={styles.subtitle}>
+          {connecting
+            ? 'Conectando…'
+            : isScanning
+              ? 'Procurando dispositivos…'
+              : isMockMode
+                ? 'Busque o HydroBot simulado para testar a interface sem o robô.'
+                : 'Busque pelo HydroBot compatível com Bluetooth Low Energy (BLE).'}
+        </Text>
+      </View>
+
+      <FlatList
+        data={devices}
+        keyExtractor={(item) => item.id}
+        renderItem={renderDevice}
+        contentContainerStyle={styles.list}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Ionicons name="bluetooth-outline" size={64} color="#9CA3AF" />
+            <Text style={styles.emptyText}>
+              {isScanning ? 'Buscando…' : 'Nenhum dispositivo encontrado'}
             </Text>
           </View>
+        }
+      />
 
-          <FlatList
-            data={devices}
-            keyExtractor={(item) => item.id}
-            renderItem={renderDevice}
-            contentContainerStyle={styles.list}
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <Ionicons name="bluetooth-outline" size={64} color="#D1D5DB" />
-                <Text style={styles.emptyText}>
-                  {isScanning ? 'Buscando...' : 'Nenhum dispositivo encontrado'}
-                </Text>
-              </View>
-            }
-          />
-
-          <TouchableOpacity
-            style={[styles.scanButton, isScanning && styles.scanButtonDisabled]}
-            onPress={startScan}
-            disabled={isScanning}
-          >
-            {isScanning ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <>
-                <Ionicons name="search" size={24} color="#fff" />
-                <Text style={styles.scanButtonText}>Buscar Dispositivos</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </>
-      )}
+      <TouchableOpacity
+        style={[styles.scanButton, isScanning && styles.scanButtonStop]}
+        onPress={isScanning ? stopScan : startScan}
+        disabled={connecting}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: connecting, busy: isScanning }}
+        accessibilityLabel={isScanning ? 'Parar busca' : 'Buscar dispositivos'}
+      >
+        {isScanning ? (
+          <>
+            <ActivityIndicator color="#fff" />
+            <Text style={styles.scanButtonText}>Parar busca</Text>
+          </>
+        ) : (
+          <>
+            <Ionicons name="search" size={24} color="#fff" />
+            <Text style={styles.scanButtonText}>Buscar Dispositivos</Text>
+          </>
+        )}
+      </TouchableOpacity>
     </View>
   );
 }
@@ -97,7 +154,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#4B5563',
     flexShrink: 1,
     flexWrap: 'wrap',
   },
@@ -135,7 +192,7 @@ const styles = StyleSheet.create({
   },
   deviceId: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#4B5563',
   },
   emptyContainer: {
     alignItems: 'center',
@@ -144,7 +201,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#9CA3AF',
+    color: '#4B5563',
     marginTop: 12,
   },
   scanButton: {
@@ -154,6 +211,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#DC2626',
     margin: 16,
     padding: 16,
+    minHeight: 56,
     borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -161,8 +219,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  scanButtonDisabled: {
-    backgroundColor: '#9CA3AF',
+  scanButtonStop: {
+    backgroundColor: '#4B5563',
   },
   scanButtonText: {
     color: '#fff',
@@ -178,7 +236,7 @@ const styles = StyleSheet.create({
   },
   connectedCard: {
     backgroundColor: '#fff',
-    padding: 40,
+    padding: 32,
     borderRadius: 20,
     alignItems: 'center',
     shadowColor: '#000',
@@ -187,32 +245,37 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
     width: '100%',
-    maxWidth: 350,
+    maxWidth: 380,
   },
   connectedTitle: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 'bold',
-    color: '#10B981',
+    color: '#047857',
     marginTop: 16,
+    textAlign: 'center',
+  },
+  connectedTitleSim: {
+    color: '#92400E',
   },
   connectedName: {
-    fontSize: 20,
+    fontSize: 18,
     color: '#111827',
     marginTop: 8,
     fontWeight: '600',
   },
   connectedSubtext: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#4B5563',
     marginTop: 8,
     textAlign: 'center',
+    lineHeight: 20,
   },
   disconnectButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#DC2626',
     paddingHorizontal: 32,
-    paddingVertical: 12,
+    minHeight: 48,
     borderRadius: 8,
     marginTop: 24,
   },

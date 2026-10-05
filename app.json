@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "hydrobotbluetooth",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash-icon.png",
@@ -17,8 +17,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.hydrobot.bluetooth",
       "infoPlist": {
-        "NSBluetoothAlwaysUsageDescription": "Este app precisa de Bluetooth para conectar ao Arduino HydroBot",
-        "NSBluetoothPeripheralUsageDescription": "Este app precisa de Bluetooth para conectar ao Arduino HydroBot"
+        "NSBluetoothAlwaysUsageDescription": "Este app precisa de Bluetooth Low Energy (BLE) para conectar ao HydroBot",
+        "NSBluetoothPeripheralUsageDescription": "Este app precisa de Bluetooth Low Energy (BLE) para conectar ao HydroBot"
       }
     },
     "android": {
@@ -42,7 +42,7 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "output": "static",
+      "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [

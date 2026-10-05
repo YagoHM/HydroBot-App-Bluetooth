@@ -1,4 +1,15 @@
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useRef } from 'react';
+import {
+  AccessibilityInfo,
+  findNodeHandle,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 export interface AppModalButton {
   text: string;
@@ -24,9 +35,18 @@ export default function AppModal({
   const resolvedButtons: AppModalButton[] =
     buttons && buttons.length > 0 ? buttons : [{ text: 'OK', style: 'default' }];
 
+  const titleRef = useRef<Text>(null);
+
   const handlePress = (button: AppModalButton) => {
     onRequestClose();
     button.onPress?.();
+  };
+
+  // Leva o foco do leitor de tela para o título ao abrir, e lê a mensagem.
+  const handleShow = () => {
+    if (Platform.OS === 'web') return;
+    const tag = titleRef.current ? findNodeHandle(titleRef.current) : null;
+    if (tag) AccessibilityInfo.setAccessibilityFocus(tag);
   };
 
   return (
@@ -35,11 +55,18 @@ export default function AppModal({
       transparent
       animationType="fade"
       onRequestClose={onRequestClose}
+      onShow={handleShow}
     >
       <View style={styles.overlay}>
-        <View style={styles.box}>
-          <Text style={styles.title}>{title}</Text>
-          {message ? <Text style={styles.message}>{message}</Text> : null}
+        <View style={styles.box} accessibilityViewIsModal>
+          <Text ref={titleRef} style={styles.title} accessibilityRole="header">
+            {title}
+          </Text>
+          {message ? (
+            <ScrollView style={styles.messageScroll}>
+              <Text style={styles.message}>{message}</Text>
+            </ScrollView>
+          ) : null}
 
           <View style={styles.buttonRow}>
             {resolvedButtons.map((button, index) => (
@@ -50,6 +77,7 @@ export default function AppModal({
                   button.style === 'cancel' ? styles.buttonCancel : styles.buttonDefault,
                 ]}
                 onPress={() => handlePress(button)}
+                accessibilityRole="button"
               >
                 <Text
                   style={[
@@ -82,6 +110,12 @@ const styles = StyleSheet.create({
     padding: 24,
     width: '100%',
     maxWidth: 360,
+    maxHeight: '90%',
+  },
+  messageScroll: {
+    flexGrow: 0,
+    flexShrink: 1,
+    marginBottom: 20,
   },
   title: {
     fontSize: 18,
@@ -91,18 +125,21 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#4B5563',
     lineHeight: 20,
-    marginBottom: 20,
   },
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    flexWrap: 'wrap',
     gap: 10,
   },
   button: {
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    minHeight: 48,
+    minWidth: 64,
+    justifyContent: 'center',
+    alignItems: 'center',
     borderRadius: 8,
   },
   buttonDefault: {

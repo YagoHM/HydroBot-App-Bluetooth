@@ -1,0 +1,190 @@
+[
+  {
+    "shot": "01-login.png"
+  },
+  {
+    "step": "Cadastro com dados fictícios",
+    "observed": "Cadastro Realizado | Usuário criado com sucesso! | OK"
+  },
+  {
+    "step": "Após login (aba Conexão)",
+    "observed": "MODO DE SIMULAÇÃO | Dispositivo simulado não conectado · versão web: conexão física indisponível | Dispositivo simulado | Busque o HydroBot simulado para testar a interface sem o robô. |  | Nenhum dispositivo encontrado |  | Buscar Dispositivos |  |  | Con"
+  },
+  {
+    "shot": "02-conexao-simulacao-desconectado.png"
+  },
+  {
+    "step": "Monitor sem conexão",
+    "observed": "Não conectado | Conecte-se ao dispositivo simulado na aba Conexão para ver os dados. |  | Ir para Conexão |  | PARADA "
+  },
+  {
+    "shot": "03-monitor-nao-conectado.png"
+  },
+  {
+    "shot": "04-conexao-dispositivo-simulado-encontrado.png"
+  },
+  {
+    "step": "Monitor antes da 1ª leitura",
+    "observed": "Preparando simulação… | A primeira leitura simulada chega em instantes. |  | PARADA DE EMERGÊNCIA |  |  | Conexão | "
+  },
+  {
+    "shot": "05-monitor-preparando-simulacao.png"
+  },
+  {
+    "step": "Monitor com leitura (sem fogo)",
+    "observed": "Leituras SIMULADAS · geradas pelo app |  | Nível de Água (simulado) | 75% | Nível adequado |  | Detecção de Fogo |  | Nenhum fogo detectado | Intensidade simulada — unidade relativa | 9 |  | Abaixo do limiar de detecção | Faixas: detecção ≥ 50 · referência ≥ 200 · perigo ≥ 350\nParâmetros aplicados na simulação. |  | Sensores de Fogo (simulados) |  | Calibração simulada |  | Esquerdo | 205 |"
+  },
+  {
+    "shot": "06-monitor-leituras-simuladas.png"
+  },
+  {
+    "step": "Conexão conectada",
+    "observed": "Conectado ao dispositivo simulado · dados gerados pelo app, sem robô físico · versão web: conexão física indisponível |  | Conectado ao dispositivo simulado | HydroBot simulado | Os dados e as respostas são gerados pelo"
+  },
+  {
+    "shot": "07-conexao-conectado-simulado.png"
+  },
+  {
+    "shot": "08-configuracoes-simulacao.png"
+  },
+  {
+    "step": "Fogo elevado, 4 atualizações",
+    "observed": [
+      "Detecção de Fogo |  | FOGO SIMULADO DETECTADO | Intensidade simulada — unidade relativa | 407 |  | Acima da intensidade de perigo | Faixas",
+      "Detecção de Fogo |  | FOGO SIMULADO DETECTADO | Intensidade simulada — unidade relativa | 412 |  | Acima da intensidade de perigo | Faixas",
+      "Detecção de Fogo |  | FOGO SIMULADO DETECTADO | Intensidade simulada — unidade relativa | 399 |  | Acima da intensidade de perigo | Faixas",
+      "Detecção de Fogo |  | FOGO SIMULADO DETECTADO | Intensidade simulada — unidade relativa | 401 |  | Acima da intensidade de perigo | Faixas"
+    ]
+  },
+  {
+    "shot": "09-monitor-fogo-elevado.png"
+  },
+  {
+    "step": "FIRE_STOP, 5 atualizações",
+    "observed": [
+      "Detecção de Fogo |  | Nenhum fogo detectado | Intensidade simulada — unidade relativa | 14 |  | Abaixo do limiar de detecção | Faixas: det",
+      "Detecção de Fogo |  | Nenhum fogo detectado | Intensidade simulada — unidade relativa | 12 |  | Abaixo do limiar de detecção | Faixas: det",
+      "Detecção de Fogo |  | Nenhum fogo detectado | Intensidade simulada — unidade relativa | 11 |  | Abaixo do limiar de detecção | Faixas: det",
+      "Detecção de Fogo |  | Nenhum fogo detectado | Intensidade simulada — unidade relativa | 15 |  | Abaixo do limiar de detecção | Faixas: det",
+      "Detecção de Fogo |  | Nenhum fogo detectado | Intensidade simulada — unidade relativa | 10 |  | Abaixo do limiar de detecção | Faixas: det"
+    ]
+  },
+  {
+    "shot": "10-monitor-fogo-cancelado.png"
+  },
+  {
+    "step": "Limiar = \"\"",
+    "observed": "|  | Digite um valor. |  | Intensidade de Referência | Aplicar | Intensidade que marca a "
+  },
+  {
+    "step": "Limiar = \"20abc\"",
+    "observed": "|  | Use apenas dígitos de 0 a 9 (sem letras ou símbolos). |  | Intensidade de Referência"
+  },
+  {
+    "shot": "11-parametro-invalido.png"
+  },
+  {
+    "step": "Limiar = \"50.5\"",
+    "observed": "|  | Use um número inteiro, sem casas decimais. |  | Intensidade de Referência | Aplicar "
+  },
+  {
+    "step": "Limiar = \"1e2\"",
+    "observed": "|  | Use apenas dígitos de 0 a 9 (sem letras ou símbolos). |  | Intensidade de Referência"
+  },
+  {
+    "step": "Limiar = \"19\"",
+    "observed": "|  | O valor deve estar entre 20 e 200. |  | Intensidade de Referência | Aplicar | Intens"
+  },
+  {
+    "step": "Limiar = \"200\"",
+    "observed": "|  | Deve ser menor que a intensidade de referência em vigor (200). |  | Intensidade de R"
+  },
+  {
+    "step": "Aplicar com valor inválido (foco/erro)",
+    "observed": "Limiar de Detecção. Erro: Deve ser menor que a intensidade de referência em vigor (200)."
+  },
+  {
+    "step": "Limiar = 100 aplicado",
+    "observed": "| Intensidade mínima para considerar fogo detectado. Inteiro de 20 a 200. Em vigor: 100. |  | Limiar de Detecção = 100: aplicado na simulação. |  | Intensidade de Referê"
+  },
+  {
+    "shot": "12-parametro-aplicado.png"
+  },
+  {
+    "step": "Monitor usa limiar aplicado",
+    "observed": "Detecção de Fogo |  | FOGO SIMULADO DETECTADO | Intensidade simulada — unidade relativa | 141 |  | Acima do limiar de detecção | Faixas: detecção ≥ 100 · referência ≥ 200 · perigo ≥ 350\nParâmetros aplicados na simulação. |  | Sensores de Fogo (simulados) | "
+  },
+  {
+    "shot": "13-monitor-faixas-com-parametros-aplicados.png"
+  },
+  {
+    "step": "Segurando \"frente\"",
+    "observed": "Movimento (simulação): Para frente | Bomba de"
+  },
+  {
+    "shot": "14-controle-movimento-frente.png"
+  },
+  {
+    "step": "Após soltar",
+    "observed": "Movimento (simulação): Parado | Bomba de Água"
+  },
+  {
+    "step": "AUTO + bomba ligada",
+    "observed": "Modo Automático | Automático simulado: a simulação não reproduz o deslocamento do robô. | AUTO |  | Modo automático: aplicado na simulação. | Bomba de Água |  | Ligada | PWM 255 de 255 (100%) |  | Desligar |  | Ligar bomba: aplicado na simulação. | Ações Rápidas |  | Configurar sensores |  | "
+  },
+  {
+    "shot": "15-controle-auto-bomba-ligada.png"
+  },
+  {
+    "step": "Emergência no Controle",
+    "observed": "Parada aplicada na simulação |  | Movimento parado · bomba desligada · modo manual. | Retome o modo automático ou os comandos quando quiser. A detecção de fogo continua ativa. |  | PARADA DE EMERGÊNCIA | Monitor |  | Reiniciar |  | MODO DE SIMULAÇÃO | Conectado ao dispositivo simulado · dados gerados pelo app, sem robô físico · versão web: conexão física"
+  },
+  {
+    "shot": "16-controle-apos-emergencia.png"
+  },
+  {
+    "step": "Emergência no Monitor após 2 s",
+    "observed": "Bomba de Água |  | Desligada |  | Ligar | Ações Rápidas |  | Configurar sensores |  |  | Parada aplicada  ### Status do Sistema | Modo |  | Manual | Velocidade | 100% | PWM Mín | 180 | PWM Máx | 255 |  | Parada aplicad ### Detecção de Fogo |  | FOGO SIMULADO DETECTADO | Intensidade simulada — unidade relativa | 413 |  | Acima da  ### Parada aplicada na simulação |  | Movimento parado · bomba desligada · modo manual. | Retome o modo automátic"
+  },
+  {
+    "shot": "17-monitor-apos-emergencia.png"
+  },
+  {
+    "step": "Emergência com falha injetada na bomba",
+    "observed": "Parada com falha parcial |  |  | Parar movimento: | aplicado na simulação |  | Desligar bomba: | falhou — Falha de envio simulada (ativada em Configurações). |  | Sair do modo automático: | aplicado na simulação | Pelo menos um comando não foi aplicado. Toque novamente em Parada de emergência; se persistir, desligue a alimentação do robô. |  | PARADA DE EMERGÊNCIA | Monitor |  | Reiniciar |  | MODO DE SIMULAÇÃ"
+  },
+  {
+    "step": "Estado da bomba após falha",
+    "observed": "Bomba de Água |  | Ligada | PWM 255 de 255 (100%) |  | Desligar | Ações Rápida"
+  },
+  {
+    "shot": "18-emergencia-falha-parcial.png"
+  },
+  {
+    "step": "Água baixa com bomba ligada",
+    "observed": "Bomba de Água |  | Ligada | PWM 255 de 255 (100%) |  | Desligar |  | Nível de água baixo (8%). Você pode desligar a bomba normalmente. | Ações Rápidas |  | Configurar sensores |  |  | Parada com"
+  },
+  {
+    "shot": "19-agua-baixa-bomba-ligada.png"
+  },
+  {
+    "step": "Após desligar com água baixa",
+    "observed": "Bomba de Água |  | Desligada |  | Ligar |  | Nível de água baixo (8%). Reabasteça para ligar a bomba. |  | Desligar bomba: aplicado na simulação. | Ações Rápidas |  | Configurar sensores |  |  | Parada com falha parcial |  |  | Par"
+  },
+  {
+    "shot": "20-agua-baixa-bomba-desligada.png"
+  },
+  {
+    "shot": "21-ajuda.png"
+  },
+  {
+    "step": "Monitor após desconectar",
+    "observed": "true / false"
+  },
+  {
+    "shot": "22-monitor-apos-desconectar.png"
+  },
+  {
+    "console": []
+  }
+]

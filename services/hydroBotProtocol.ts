@@ -50,6 +50,16 @@ export type HydroBotTelemetry = {
   fire_thresh: number;
   fire_danger: number;
   fire_ideal: number;
+  sensor_left: number;
+  sensor_center: number;
+  sensor_right: number;
+  delta_left: number;
+  delta_center: number;
+  delta_right: number;
+  base_left: number;
+  base_center: number;
+  base_right: number;
+  calibrated: boolean;
 };
 
 export type HydroBotEvent =
@@ -70,28 +80,25 @@ export type ParsedHydroBotMessage =
   | { kind: 'telemetry'; raw: string; telemetry: Partial<HydroBotTelemetry> }
   | { kind: 'event'; raw: string; event: HydroBotEvent; value?: string };
 
-export const DEFAULT_TELEMETRY: HydroBotTelemetry = {
-  water: 0,
-  pump: 0,
-  intensity: 0,
-  mode: 'MANUAL',
-  fire: false,
-  speed: 60,
-  speed_l: 60,
-  speed_r: 60,
-  turn_speed: 55,
-  motor_pwm_min: 110,
-  kick_fwd_ms: 80,
-  kick_back_ms: 150,
-  kick_pwm: 100,
-  pwm_min: 180,
-  pwm_max: 255,
-  fire_thresh: 200,
-  fire_danger: 1400,
-  fire_ideal: 800,
+// Valores padrão anteriormente registrados aqui para o firmware (não confirmados):
+// fire_thresh 200, fire_danger 1400, fire_ideal 800. Eles estão fora das faixas
+// aceitas pela tela de Configurações (20–200, 200–600, 100–400); confirme a escala
+// real com o firmware antes de alterar essas faixas.
+
+/**
+ * Prefixo da resposta que o firmware envia ao aplicar cada parâmetro.
+ * Só é usado como evidência de aplicação quando a resposta chega de fato.
+ */
+export const ACK_PREFIX_BY_COMMAND: Record<string, string> = {
+  SET_SPEED: 'SPEED_SET:',
+  SET_PWM_MIN: 'PWM_MIN_SET:',
+  SET_PWM_MAX: 'PWM_MAX_SET:',
+  SET_FIRE_THRESH: 'FIRE_THRESH_SET:',
+  SET_FIRE_DANGER: 'FIRE_DANGER_SET:',
+  SET_FIRE_IDEAL: 'FIRE_IDEAL_SET:',
 };
 
-const EVENT_PREFIXES: Array<[string, HydroBotEvent]> = [
+const EVENT_PREFIXES: [string, HydroBotEvent][] = [
   ['OK:', 'ok'],
   ['ERR:', 'error'],
   ['SPEED_SET:', 'ok'],
@@ -133,7 +140,7 @@ export function encodeHydroBotCommand(command: HydroBotCommand): string {
 
 export function sanitizeTelemetry(input: Record<string, unknown>): Partial<HydroBotTelemetry> {
   const output: Partial<HydroBotTelemetry> = {};
-  const numericKeys: Array<keyof HydroBotTelemetry> = [
+  const numericKeys: (keyof HydroBotTelemetry)[] = [
     'water',
     'pump',
     'intensity',
@@ -150,6 +157,15 @@ export function sanitizeTelemetry(input: Record<string, unknown>): Partial<Hydro
     'fire_thresh',
     'fire_danger',
     'fire_ideal',
+    'sensor_left',
+    'sensor_center',
+    'sensor_right',
+    'delta_left',
+    'delta_center',
+    'delta_right',
+    'base_left',
+    'base_center',
+    'base_right',
   ];
 
   for (const key of numericKeys) {
@@ -164,6 +180,9 @@ export function sanitizeTelemetry(input: Record<string, unknown>): Partial<Hydro
 
   const fire = boolFrom(input.fire);
   if (fire !== undefined) output.fire = fire;
+
+  const calibrated = boolFrom(input.calibrated);
+  if (calibrated !== undefined) output.calibrated = calibrated;
 
   return output;
 }

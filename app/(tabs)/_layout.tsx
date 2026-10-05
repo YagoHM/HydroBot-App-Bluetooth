@@ -1,47 +1,49 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { Alert, Text, TouchableOpacity } from 'react-native';
+import { useState } from 'react';
+import { Text, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AppModal from '../../components/AppModal';
+import NoticeHost from '../../components/NoticeHost';
 import { useBluetooth } from '../../context/BluetoothContext';
 
 function RestartButton() {
   const { restartApp } = useBluetooth();
-
-  const handleRestart = () => {
-    Alert.alert(
-      '🔄 Reiniciar Aplicativo',
-      'Tem certeza que deseja reiniciar o aplicativo? Isso vai desconectar o dispositivo.',
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-        {
-          text: 'Reiniciar',
-          onPress: () => restartApp(),
-          style: 'destructive',
-        },
-      ]
-    );
-  };
+  const [confirming, setConfirming] = useState(false);
 
   return (
-    <TouchableOpacity
-      onPress={handleRestart}
-      style={{
-        marginRight: 15,
-        padding: 8,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        borderRadius: 8,
-        flexDirection: 'row',
-        alignItems: 'center',
-      }}
-    >
-      <Ionicons name="reload" size={20} color="#fff" />
-      <Text style={{ color: '#fff', marginLeft: 4, fontSize: 12, fontWeight: '600' }}>
-        Reiniciar
-      </Text>
-    </TouchableOpacity>
+    <>
+      <TouchableOpacity
+        onPress={() => setConfirming(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Reiniciar aplicativo"
+        hitSlop={8}
+        style={{
+          marginRight: 12,
+          paddingHorizontal: 10,
+          minHeight: 40,
+          backgroundColor: 'rgba(0, 0, 0, 0.2)',
+          borderRadius: 8,
+          flexDirection: 'row',
+          alignItems: 'center',
+        }}
+      >
+        <Ionicons name="reload" size={20} color="#fff" />
+        <Text style={{ color: '#fff', marginLeft: 4, fontSize: 12, fontWeight: '600' }}>
+          Reiniciar
+        </Text>
+      </TouchableOpacity>
+      <AppModal
+        visible={confirming}
+        title="Reiniciar aplicativo?"
+        message="O aplicativo será recarregado e a conexão atual (real ou simulada) será encerrada."
+        buttons={[
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Reiniciar', onPress: () => void restartApp() },
+        ]}
+        onRequestClose={() => setConfirming(false)}
+      />
+    </>
   );
 }
 
@@ -49,68 +51,77 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: '#DC2626',
-        tabBarInactiveTintColor: '#9CA3AF',
-        headerStyle: {
-          backgroundColor: '#DC2626',
-        },
-        headerTintColor: '#fff',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-        },
-        tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopWidth: 1,
-          borderTopColor: '#E5E7EB',
-          height: 60 + insets.bottom,
-          paddingBottom: 8 + insets.bottom,
-          paddingTop: 8,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-        },
-        headerRight: () => <RestartButton />,
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Conexão',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bluetooth" size={size} color={color} />
-          ),
+    <>
+      <Tabs
+        screenOptions={{
+          tabBarActiveTintColor: '#B91C1C',
+          // Abas não selecionadas continuam acionáveis: contraste 4,83:1 sobre branco
+          tabBarInactiveTintColor: '#6B7280',
+          headerStyle: {
+            backgroundColor: '#DC2626',
+          },
+          headerTintColor: '#fff',
+          headerTitleStyle: {
+            fontWeight: 'bold',
+          },
+          tabBarStyle: {
+            backgroundColor: '#fff',
+            borderTopWidth: 1,
+            borderTopColor: '#E5E7EB',
+            // Altura suficiente para ícone + rótulo sem corte; insets evitam a barra do sistema
+            height: 68 + insets.bottom,
+            paddingBottom: 10 + insets.bottom,
+            paddingTop: 6,
+          },
+          tabBarLabelStyle: {
+            fontSize: 12,
+            lineHeight: 16,
+            // Evita que o rótulo seja comprimido e corte letras como "ç" e "g"
+            minHeight: 16,
+            flexShrink: 0,
+            fontWeight: '600',
+          },
+          headerRight: () => <RestartButton />,
         }}
-      />
-      <Tabs.Screen
-        name="control"
-        options={{
-          title: 'Controle',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="game-controller" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="monitor"
-        options={{
-          title: 'Monitor',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="analytics" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: 'Configurações',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings" size={size} color={color} />
-          ),
-        }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Conexão',
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="bluetooth" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="control"
+          options={{
+            title: 'Controle',
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="game-controller" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="monitor"
+          options={{
+            title: 'Monitor',
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="analytics" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="settings"
+          options={{
+            title: 'Configurações',
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="settings" size={size} color={color} />
+            ),
+          }}
+        />
+      </Tabs>
+      <NoticeHost />
+    </>
   );
 }

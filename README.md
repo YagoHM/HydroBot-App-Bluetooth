@@ -1,3 +1,14 @@
+# HydroBot — aplicativo de controle
+
+Aplicativo Expo/React Native para controlar o HydroBot por **Bluetooth Low Energy (BLE)** (`react-native-ble-plx`), com **Modo de Simulação** para testar a interface sem o robô.
+
+- Android (BLE real): `npx expo run:android`. Requer development build; o Expo Go comum não inclui o módulo BLE.
+- Web (somente simulação): `npx expo start --web`. O transporte BLE fica em `services/bleTransport.ts`, e a versão web (`bleTransport.web.ts`) não carrega o módulo nativo.
+- Testes de lógica (simulador e validação): `npm test`.
+- Ajustes de IHC da 3ª entrega, verificação e limitações: [docs/IHC-V3-ajustes.md](docs/IHC-V3-ajustes.md).
+
+---
+
 # Welcome to your Expo app 👋
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).

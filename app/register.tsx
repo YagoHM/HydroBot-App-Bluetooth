@@ -62,7 +62,7 @@ export default function RegisterScreen() {
         <TextInput
           style={styles.input}
           placeholder="Nome Completo"
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor="#6B7280"
           value={name}
           onChangeText={setName}
         />
@@ -70,7 +70,7 @@ export default function RegisterScreen() {
         <TextInput
           style={styles.input}
           placeholder="E-mail"
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor="#6B7280"
           keyboardType="email-address"
           autoCapitalize="none"
           value={email}
@@ -80,7 +80,7 @@ export default function RegisterScreen() {
         <TextInput
           style={styles.input}
           placeholder="Senha"
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor="#6B7280"
           secureTextEntry
           value={password}
           onChangeText={setPassword}
@@ -89,18 +89,22 @@ export default function RegisterScreen() {
         <TextInput
           style={styles.input}
           placeholder="Confirmar Senha"
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor="#6B7280"
           secureTextEntry
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           onSubmitEditing={handleRegister}
         />
 
-        <TouchableOpacity style={styles.button} onPress={handleRegister}>
+        <TouchableOpacity style={styles.button} onPress={handleRegister} accessibilityRole="button">
           <Text style={styles.buttonText}>Cadastrar</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => router.replace('/login')}>
+        <TouchableOpacity
+          onPress={() => router.replace('/login')}
+          accessibilityRole="link"
+          style={{ minHeight: 48, justifyContent: 'center' }}
+        >
           <Text style={styles.link}>Já possui conta? Faça Login</Text>
         </TouchableOpacity>
       </View>
