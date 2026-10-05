@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Text, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppModal from '../../components/AppModal';
@@ -10,10 +10,12 @@ import { useBluetooth } from '../../context/BluetoothContext';
 function RestartButton() {
   const { restartApp } = useBluetooth();
   const [confirming, setConfirming] = useState(false);
+  const buttonRef = useRef<any>(null);
 
   return (
     <>
       <TouchableOpacity
+        ref={buttonRef}
         onPress={() => setConfirming(true)}
         accessibilityRole="button"
         accessibilityLabel="Reiniciar aplicativo"
@@ -42,6 +44,7 @@ function RestartButton() {
           { text: 'Reiniciar', onPress: () => void restartApp() },
         ]}
         onRequestClose={() => setConfirming(false)}
+        returnFocusRef={buttonRef}
       />
     </>
   );

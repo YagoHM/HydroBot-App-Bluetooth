@@ -23,11 +23,15 @@ const check = async (id, desc, expr) => {
 };
 const sec = (start, len = 160) => `const v = __vis(); const i = v.indexOf(${JSON.stringify(start)}); return i < 0 ? 'NÃO ENCONTRADO: ' + ${JSON.stringify(start)} : v.slice(i, i + ${len});`;
 
+const focusCheck = (label, open, close) => `const el = [...document.querySelectorAll('[aria-label]')].find(e => __vis1(e) && e.getAttribute('aria-label') === ${JSON.stringify(label)}) ?? __clickable(__find(${JSON.stringify(label)}));
+  el.focus(); const before = document.activeElement === el; el.click(); await __sleep(600); const during = document.activeElement; const inModal = during !== el; ${close} await __sleep(700);
+  const a = document.activeElement; return 'foco antes: ' + before + ' / com o modal aberto saiu do elemento: ' + inModal + ' (' + (during?.getAttribute('aria-label') ?? during?.tagName) + ') / após fechar volta ao elemento: ' + (a === el) + ' (' + (a?.getAttribute('aria-label') ?? a?.innerText?.slice(0, 30)) + ')';`;
 try {
   await b.navigate(BASE + '/control');
   await ev(`for (let i = 0; i < 120 && !document.querySelector('input'); i++) await __sleep(500); await __sleep(500); return 1;`);
   await check('I5', 'Abrir /control sem autenticação', `return location.pathname + ' :: ' + __vis().slice(0, 80);`);
 
+  await check('M1', 'Foco volta ao botão Entrar após fechar o erro de login', `__set('E-mail', 'invalido'); await __sleep(100); ` + focusCheck('Entrar', '', "__click('OK');"));
   await ev(`__click('Não possui conta? Cadastre-se'); await __sleep(600); __set('Nome Completo','Pessoa Teste'); __set('E-mail','teste@exemplo.com'); __set('Senha','senhaTeste1'); __set('Confirmar Senha','senhaTeste1'); await __sleep(200); __click('Cadastrar'); await __sleep(600); __click('OK'); await __sleep(800); __set('E-mail','teste@exemplo.com'); __set('Senha','senhaTeste1'); await __sleep(200); __click('Entrar'); await __sleep(300); return 1;`);
   await check('I3', 'Monitor logo após login com simulação ativa (sem tocar em Conexão)', `__click('Monitor'); await __sleep(1800); ${sec('Leituras', 120)}`);
   await b.shot(path.join(OUT, 'R-I3-monitor-apos-login.png'));
@@ -47,6 +51,9 @@ try {
   await check('I6', 'Fundo do modal (padrão claro)', `const t = __find('Sobre o HydroBot'); let p = t; let bg = ''; const all = [...document.querySelectorAll('div')].filter(d => getComputedStyle(d).borderTopLeftRadius === '16px' && d.innerText.includes('Versão 1.0.0 —')); return all.map(d => getComputedStyle(d).backgroundColor).join(',');`);
   await b.shot(path.join(OUT, 'R-I2-I6-modal-sobre.png'));
   await ev(`__click('OK'); await __sleep(300); return 1;`);
+  await check('M2', 'Foco volta a "Sobre o HydroBot" ao fechar o modal', focusCheck('Sobre o HydroBot, versão 1.0.0', '', "__click('OK');"));
+  await check('M3', 'Foco volta a "Ajuda" ao fechar o modal', focusCheck('Ajuda', '', "__click('OK');"));
+  await check('M4', 'Foco volta a "Reiniciar aplicativo" ao cancelar', focusCheck('Reiniciar aplicativo', '', "__click('Cancelar');"));
 
   await check('E1', 'Ativar e cancelar fogo simulado', `__scrollTo('Cenário de fogo simulado'); __click('Elevada'); await __sleep(1300); const a = __vis().includes('FOGO SIMULADO DETECTADO'); __click('Sem fogo'); await __sleep(2000); const v = __vis(); return 'ativo=' + a + ' / após cancelar: detectado=' + v.includes('FOGO SIMULADO DETECTADO') + ', nenhum=' + v.includes('Nenhum fogo detectado');`);
   await check('E2', 'Apagar todo o valor do campo', `__scrollTo('Limiar de Detecção', 'center'); __set('Limiar de Detecção', ''); await __sleep(200); const v = __input('Limiar de Detecção').value; __set('Limiar de Detecção', '75'); await __sleep(100); return 'vazio aceito: ' + (v === '') + ' / redigitado: ' + __input('Limiar de Detecção').value;`);

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -21,6 +21,7 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errorModalVisible, setErrorModalVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const registerButtonRef = useRef<any>(null);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
   const { register } = useAuth();
 
@@ -96,7 +97,12 @@ export default function RegisterScreen() {
           onSubmitEditing={handleRegister}
         />
 
-        <TouchableOpacity style={styles.button} onPress={handleRegister} accessibilityRole="button">
+        <TouchableOpacity
+          ref={registerButtonRef}
+          style={styles.button}
+          onPress={handleRegister}
+          accessibilityRole="button"
+        >
           <Text style={styles.buttonText}>Cadastrar</Text>
         </TouchableOpacity>
 
@@ -114,6 +120,7 @@ export default function RegisterScreen() {
         title="Erro no Cadastro"
         message={errorMessage}
         onRequestClose={() => setErrorModalVisible(false)}
+        returnFocusRef={registerButtonRef}
       />
 
       <AppModal

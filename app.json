@@ -66,7 +66,9 @@
           ],
           "bluetoothAlwaysPermission": "Permitir que $(PRODUCT_NAME) se conecte a dispositivos Bluetooth?"
         }
-      ]
+      ],
+      "expo-font",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

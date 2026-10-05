@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 import {
   AccessibilityInfo,
   findNodeHandle,
@@ -23,6 +23,24 @@ interface AppModalProps {
   message?: string;
   buttons?: AppModalButton[];
   onRequestClose: () => void;
+  /**
+   * Elemento que abriu o modal. Ao fechar, o foco (TalkBack ou teclado)
+   * volta para ele. Na web, sem ref, volta ao elemento que tinha o foco.
+   */
+  returnFocusRef?: RefObject<any>;
+}
+
+/** Tempo para a animação de saída terminar antes de mover o foco. */
+const RETURN_FOCUS_DELAY_MS = 300;
+
+export function restoreFocus(target: any) {
+  if (!target) return;
+  if (Platform.OS === 'web') {
+    target.focus?.();
+    return;
+  }
+  const tag = findNodeHandle(target);
+  if (tag) AccessibilityInfo.setAccessibilityFocus(tag);
 }
 
 export default function AppModal({
@@ -31,11 +49,29 @@ export default function AppModal({
   message,
   buttons,
   onRequestClose,
+  returnFocusRef,
 }: AppModalProps) {
   const resolvedButtons: AppModalButton[] =
     buttons && buttons.length > 0 ? buttons : [{ text: 'OK', style: 'default' }];
 
   const titleRef = useRef<Text>(null);
+  const wasVisibleRef = useRef(false);
+  const webOpenerRef = useRef<any>(null);
+
+  // Guarda quem abriu o modal e devolve o foco a ele quando o modal fecha.
+  useEffect(() => {
+    if (visible && !wasVisibleRef.current) {
+      webOpenerRef.current =
+        Platform.OS === 'web' && typeof document !== 'undefined' ? document.activeElement : null;
+    }
+    if (!visible && wasVisibleRef.current) {
+      const target = returnFocusRef?.current ?? webOpenerRef.current;
+      const timer = setTimeout(() => restoreFocus(target), RETURN_FOCUS_DELAY_MS);
+      wasVisibleRef.current = false;
+      return () => clearTimeout(timer);
+    }
+    wasVisibleRef.current = visible;
+  }, [visible, returnFocusRef]);
 
   const handlePress = (button: AppModalButton) => {
     onRequestClose();

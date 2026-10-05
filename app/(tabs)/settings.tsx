@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useRef, useState, type RefObject } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -26,6 +26,8 @@ interface ModalState {
   title: string;
   message?: string;
   buttons?: AppModalButton[];
+  /** Controle que abriu o modal; recebe o foco de volta ao fechar. */
+  returnFocusRef?: RefObject<any>;
 }
 
 const SCENARIOS: { key: FireScenario; command: string; label: string }[] = [
@@ -61,6 +63,9 @@ export default function SettingsScreen() {
     setSimFailure,
   } = useBluetooth();
   const [modal, setModal] = useState<ModalState | null>(null);
+  const mockSwitchRef = useRef<any>(null);
+  const aboutRef = useRef<any>(null);
+  const helpRef = useRef<any>(null);
   const [pwmMinLocal, setPwmMinLocal] = useState(180);
   const [pwmMaxLocal, setPwmMaxLocal] = useState(255);
   // Valores confirmados pelo dispositivo quando a telemetria não traz os parâmetros.
@@ -86,6 +91,7 @@ export default function SettingsScreen() {
   const handleToggleMock = () => {
     if (!bleAvailable) {
       setModal({
+        returnFocusRef: mockSwitchRef,
         title: "Somente simulação",
         message:
           "Na versão web não há acesso ao Bluetooth do robô. Use o app Android para a conexão física.",
@@ -94,6 +100,7 @@ export default function SettingsScreen() {
     }
     const activating = !isMockMode;
     setModal({
+      returnFocusRef: mockSwitchRef,
       title: activating ? "Ativar Modo de Simulação?" : "Usar Bluetooth BLE?",
       message: activating
         ? "O app usará um dispositivo simulado e nenhum robô físico será controlado. A busca e a conexão BLE atuais serão encerradas."
@@ -107,6 +114,7 @@ export default function SettingsScreen() {
             if (!changed) return;
             setConfirmedParams(DEFAULT_FIRE_PARAMS);
             setModal({
+              returnFocusRef: mockSwitchRef,
               title: activating
                 ? "Modo de Simulação ativado"
                 : "Modo Bluetooth BLE ativado",
@@ -159,6 +167,7 @@ export default function SettingsScreen() {
               )}
             </View>
             <Switch
+              ref={mockSwitchRef}
               value={isMockMode}
               onValueChange={handleToggleMock}
               disabled={!bleAvailable}
@@ -366,9 +375,11 @@ export default function SettingsScreen() {
 
         <View style={styles.card}>
           <TouchableOpacity
+            ref={aboutRef}
             style={styles.infoRow}
             onPress={() =>
               setModal({
+                returnFocusRef: aboutRef,
                 title: "Sobre o HydroBot",
                 message:
                   "Versão 1.0.0 — HydroBot Controller.\n\nControle do robô por Bluetooth Low Energy (BLE), com Modo de Simulação para testar a interface sem o robô.",
@@ -388,8 +399,11 @@ export default function SettingsScreen() {
 
         <View style={styles.card}>
           <TouchableOpacity
+            ref={helpRef}
             style={styles.infoRow}
-            onPress={() => setModal({ title: "Ajuda", message: HELP_TEXT })}
+            onPress={() =>
+              setModal({ title: "Ajuda", message: HELP_TEXT, returnFocusRef: helpRef })
+            }
             accessibilityRole="button"
             accessibilityLabel="Ajuda"
             accessibilityHint="Explica cada função do aplicativo"
@@ -416,6 +430,7 @@ export default function SettingsScreen() {
         title={modal?.title ?? ""}
         message={modal?.message}
         buttons={modal?.buttons}
+        returnFocusRef={modal?.returnFocusRef}
         onRequestClose={() => setModal(null)}
       />
     </View>

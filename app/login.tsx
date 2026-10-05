@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -22,6 +22,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [errorModalVisible, setErrorModalVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const loginButtonRef = useRef<any>(null);
   const { login, findUser } = useAuth();
 
   const showError = (message: string) => {
@@ -76,7 +77,12 @@ export default function LoginScreen() {
           onSubmitEditing={handleLogin}
         />
 
-        <TouchableOpacity style={styles.button} onPress={handleLogin} accessibilityRole="button">
+        <TouchableOpacity
+          ref={loginButtonRef}
+          style={styles.button}
+          onPress={handleLogin}
+          accessibilityRole="button"
+        >
           <Text style={styles.buttonText}>Entrar</Text>
         </TouchableOpacity>
 
@@ -94,6 +100,7 @@ export default function LoginScreen() {
         title="Erro de Autenticação"
         message={errorMessage}
         onRequestClose={() => setErrorModalVisible(false)}
+        returnFocusRef={loginButtonRef}
       />
     </KeyboardAvoidingView>
   );
