@@ -10,10 +10,9 @@ import {
 } from "react-native";
 import AppModal, { AppModalButton } from "../../components/AppModal";
 import FeedbackLine from "../../components/FeedbackLine";
-import ModeBanner from "../../components/ModeBanner";
 import ParamField from "../../components/ParamField";
 import SliderSetting from "../../components/SliderSetting";
-import { useBluetooth, type SimFailure } from "../../context/BluetoothContext";
+import { announce, useBluetooth, type SimFailure } from "../../context/BluetoothContext";
 import { useCommandFeedback } from "../../hooks/useCommandFeedback";
 import {
   DEFAULT_FIRE_PARAMS,
@@ -35,6 +34,11 @@ const SCENARIOS: { key: FireScenario; command: string; label: string }[] = [
   { key: "detected", command: "FIRE_SIM:DETECTED", label: "Detecção" },
   { key: "reference", command: "FIRE_SIM:REFERENCE", label: "Referência" },
   { key: "high", command: "FIRE_SIM:HIGH", label: "Elevada" },
+];
+
+const WATER_LEVELS: { value: number; label: string }[] = [
+  { value: 8, label: "Água baixa (8%)" },
+  { value: 75, label: "Reabastecer (75%)" },
 ];
 
 const FAILURES: { key: SimFailure; label: string }[] = [
@@ -128,6 +132,14 @@ export default function SettingsScreen() {
     });
   };
 
+  const runWater = async (w: (typeof WATER_LEVELS)[number]) => {
+    const { confirmed } = await simFb.run(`SIM_WATER:${w.value}`, {
+      label: `Água simulada em ${w.value}%`,
+    });
+    // Em falha, a seleção continua no valor anterior (vem da telemetria) e a falha aparece abaixo.
+    if (confirmed) announce(`${w.label} selecionado`);
+  };
+
   const runScenario = (s: (typeof SCENARIOS)[number]) =>
     simFb.run(s.command, { label: `Cenário de fogo: ${s.label}` });
 
@@ -136,8 +148,11 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.screen}>
-      <ModeBanner />
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* ── ORIGEM DOS DADOS ─────────────────────────────────── */}
         <Text style={styles.sectionTitle} accessibilityRole="header">
           Origem dos dados
@@ -157,7 +172,7 @@ export default function SettingsScreen() {
               </Text>
               <Text style={styles.mockSubtitle}>
                 {isMockMode
-                  ? "Ativo — dados gerados pelo app, sem robô físico"
+                  ? "Ativo — os dados são gerados pelo aplicativo, sem controlar um robô físico"
                   : "Inativo — usando Bluetooth Low Energy (BLE)"}
               </Text>
               {!bleAvailable && (
@@ -177,6 +192,7 @@ export default function SettingsScreen() {
               accessibilityLabelledBy="mock-switch-label"
               accessibilityRole="switch"
               accessibilityState={{ checked: isMockMode, disabled: !bleAvailable }}
+              aria-checked={isMockMode}
             />
           </View>
 
@@ -194,7 +210,11 @@ export default function SettingsScreen() {
                     A intensidade fica dentro da faixa escolhida, conforme os
                     parâmetros aplicados, até você escolher outro cenário.
                   </Text>
-                  <View style={styles.chips} accessibilityRole="radiogroup">
+                  <View
+                    style={styles.chips}
+                    accessibilityRole="radiogroup"
+                    accessibilityLabel="Cenário de fogo simulado"
+                  >
                     {SCENARIOS.map((s) => {
                       const selected = scenario === s.key;
                       return (
@@ -204,6 +224,7 @@ export default function SettingsScreen() {
                           onPress={() => void runScenario(s)}
                           accessibilityRole="radio"
                           accessibilityState={{ selected, checked: selected }}
+                          aria-checked={selected}
                           accessibilityLabel={`Cenário ${s.label}`}
                         >
                           {selected && <Ionicons name="checkmark" size={16} color="#fff" />}
@@ -216,33 +237,47 @@ export default function SettingsScreen() {
                   </View>
 
                   <Text style={styles.groupTitle}>Nível de água simulado</Text>
-                  <View style={styles.chips}>
-                    <TouchableOpacity
-                      style={styles.chip}
-                      onPress={() =>
-                        void simFb.run("SIM_WATER:8", { label: "Água simulada em 8%" })
-                      }
-                      accessibilityRole="button"
-                    >
-                      <Text style={styles.chipText}>Água baixa (8%)</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.chip}
-                      onPress={() =>
-                        void simFb.run("SIM_WATER:75", { label: "Água simulada em 75%" })
-                      }
-                      accessibilityRole="button"
-                    >
-                      <Text style={styles.chipText}>Reabastecer (75%)</Text>
-                    </TouchableOpacity>
+                  <View
+                    style={styles.chips}
+                    accessibilityRole="radiogroup"
+                    accessibilityLabel="Nível de água simulado"
+                  >
+                    {WATER_LEVELS.map((w) => {
+                      // Destaque pelo estado confirmado da simulação (telemetria), não pelo toque.
+                      const selected = telemetry?.water === w.value;
+                      return (
+                        <TouchableOpacity
+                          key={w.value}
+                          style={[styles.chip, selected && styles.chipSelected]}
+                          onPress={() => void runWater(w)}
+                          accessibilityRole="radio"
+                          accessibilityState={{ selected, checked: selected }}
+                          aria-checked={selected}
+                          accessibilityLabel={`Nível de água: ${w.label}`}
+                        >
+                          {selected && <Ionicons name="checkmark" size={16} color="#fff" />}
+                          <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+                            {w.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
+                  <Text style={styles.mockHintText}>
+                    Nível atual na simulação:{" "}
+                    {telemetry?.water !== undefined ? `${telemetry.water}%` : "aguardando leitura"}
+                  </Text>
 
                   <Text style={styles.groupTitle}>Falha de envio simulada</Text>
                   <Text style={styles.mockHintText}>
                     Para testar mensagens de erro e a parada de emergência com
                     falha parcial.
                   </Text>
-                  <View style={styles.chips} accessibilityRole="radiogroup">
+                  <View
+                    style={styles.chips}
+                    accessibilityRole="radiogroup"
+                    accessibilityLabel="Falha de envio simulada"
+                  >
                     {FAILURES.map((f) => {
                       const selected = simFailure === f.key;
                       return (
@@ -252,6 +287,7 @@ export default function SettingsScreen() {
                           onPress={() => setSimFailure(f.key)}
                           accessibilityRole="radio"
                           accessibilityState={{ selected, checked: selected }}
+                          aria-checked={selected}
                           accessibilityLabel={`Falha simulada: ${f.label}`}
                         >
                           {selected && <Ionicons name="checkmark" size={16} color="#fff" />}

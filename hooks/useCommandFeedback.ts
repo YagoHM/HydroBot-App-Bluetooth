@@ -29,7 +29,7 @@ export interface RunResult {
  * enviado (sem confirmação), confirmado pelo dispositivo ou falha.
  */
 export function useCommandFeedback() {
-  const { sendCommand, waitForConfirmation } = useBluetooth();
+  const { sendCommand, waitForConfirmation, sessionId } = useBluetooth();
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const runIdRef = useRef(0);
   const mountedRef = useRef(true);
@@ -40,6 +40,15 @@ export function useCommandFeedback() {
       mountedRef.current = false;
     };
   }, []);
+
+  // Nova sessão (troca de modo, desconexão, perda de conexão): resultados da
+  // sessão anterior deixam de valer, e respostas pendentes dela são ignoradas.
+  const firstSessionRef = useRef(sessionId);
+  useEffect(() => {
+    if (sessionId === firstSessionRef.current) return;
+    runIdRef.current += 1;
+    setFeedback(null);
+  }, [sessionId]);
 
   const run = useCallback(
     async (command: string, { label, confirm }: RunOptions): Promise<RunResult> => {

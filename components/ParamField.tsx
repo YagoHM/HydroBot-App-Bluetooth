@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { announce } from '../context/BluetoothContext';
+import { Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { announce, useBluetooth } from '../context/BluetoothContext';
 import { useCommandFeedback } from '../hooks/useCommandFeedback';
 import { FIRE_PARAM_RANGES, type FireParamKey, type FireParams } from '../services/fireLevels';
 import { ACK_PREFIX_BY_COMMAND } from '../services/hydroBotProtocol';
@@ -50,6 +50,16 @@ export default function ParamField({
   const fb = useCommandFeedback();
   const { min, max } = FIRE_PARAM_RANGES[paramKey];
 
+  // Nova sessão (troca de modo/desconexão): edição e erros anteriores deixam de valer.
+  const { sessionId } = useBluetooth();
+  const sessionRef = useRef(sessionId);
+  useEffect(() => {
+    if (sessionRef.current === sessionId) return;
+    sessionRef.current = sessionId;
+    setDirty(false);
+    setShowErrors(false);
+  }, [sessionId]);
+
   // Acompanha o valor em vigor enquanto o usuário não estiver editando.
   useEffect(() => {
     if (!dirty) setText(String(currentValue));
@@ -65,6 +75,10 @@ export default function ParamField({
       inputRef.current?.focus();
       return;
     }
+    // Valor válido: fecha o teclado para o resultado ("Em vigor") ficar visível.
+    // O toque em Aplicar não é consumido pelo teclado porque as telas usam
+    // keyboardShouldPersistTaps="handled".
+    Keyboard.dismiss();
     const value = validation.value;
     const telemetryKey = TELEMETRY_KEY[paramKey];
     const { confirmed } = await fb.run(`${command}:${value}`, {

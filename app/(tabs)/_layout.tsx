@@ -4,6 +4,8 @@ import { useRef, useState } from 'react';
 import { Text, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppModal from '../../components/AppModal';
+import EmergencyModal from '../../components/EmergencyModal';
+import HeaderTitle from '../../components/HeaderTitle';
 import NoticeHost from '../../components/NoticeHost';
 import { useBluetooth } from '../../context/BluetoothContext';
 
@@ -67,6 +69,9 @@ export default function TabLayout() {
           headerTitleStyle: {
             fontWeight: 'bold',
           },
+          // Título + indicador compacto de modo/conexão (substitui a faixa grande)
+          headerTitleAlign: 'left',
+          headerTitle: ({ children }) => <HeaderTitle title={String(children)} />,
           tabBarStyle: {
             backgroundColor: '#fff',
             borderTopWidth: 1,
@@ -118,6 +123,9 @@ export default function TabLayout() {
           name="settings"
           options={{
             title: 'Configurações',
+            // "Configurações" não cabia na aba e aparecia com reticências
+            tabBarLabel: 'Ajustes',
+            tabBarAccessibilityLabel: 'Ajustes, tela de Configurações',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="settings" size={size} color={color} />
             ),
@@ -125,6 +133,7 @@ export default function TabLayout() {
         />
       </Tabs>
       <NoticeHost />
+      <EmergencyModal />
     </>
   );
 }

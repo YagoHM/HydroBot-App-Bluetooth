@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import EmergencyStopBar from '../../components/EmergencyStopBar';
 import FeedbackLine from '../../components/FeedbackLine';
-import ModeBanner from '../../components/ModeBanner';
 import NotConnectedCard from '../../components/NotConnectedCard';
 import { useBluetooth } from '../../context/BluetoothContext';
 import { useCommandFeedback } from '../../hooks/useCommandFeedback';
@@ -26,7 +25,7 @@ const DIRECTIONS: Record<Direction, { icon: keyof typeof Ionicons.glyphMap; labe
 };
 
 export default function ControlScreen() {
-  const { isConnected, telemetry, isMockMode, lastEmergency } = useBluetooth();
+  const { isConnected, telemetry, isMockMode, emergency } = useBluetooth();
   const screenReader = useScreenReader();
   const modeFb = useCommandFeedback();
   const moveFb = useCommandFeedback();
@@ -37,12 +36,13 @@ export default function ControlScreen() {
   const clearMode = modeFb.clear;
   const clearMove = moveFb.clear;
   const clearPump = pumpFb.clear;
+  const emergencyId = emergency?.id;
   useEffect(() => {
-    if (!lastEmergency) return;
+    if (emergencyId === undefined) return;
     clearMode();
     clearMove();
     clearPump();
-  }, [lastEmergency, clearMode, clearMove, clearPump]);
+  }, [emergencyId, clearMode, clearMove, clearPump]);
 
   const mode = telemetry?.mode;
   const isAuto = mode === 'AUTO';
@@ -104,8 +104,11 @@ export default function ControlScreen() {
 
   return (
     <View style={styles.screen}>
-      <ModeBanner />
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
         {!isConnected ? (
           <NotConnectedCard what="controlar o robô" />
         ) : (
@@ -137,6 +140,8 @@ export default function ControlScreen() {
                   accessibilityRole="switch"
                   accessibilityLabel="Modo automático"
                   accessibilityState={{ checked: isAuto, disabled: mode === undefined }}
+                  aria-checked={isAuto}
+                  aria-disabled={mode === undefined}
                 >
                   <Text style={[styles.modeButtonText, isAuto && styles.modeButtonTextActive]}>
                     {isAuto ? 'AUTO' : 'MANUAL'}
@@ -219,6 +224,7 @@ export default function ControlScreen() {
                     accessibilityRole="button"
                     accessibilityLabel="Ligar bomba"
                     accessibilityState={{ disabled: !!turnOnBlockedReason }}
+                    aria-disabled={!!turnOnBlockedReason}
                     accessibilityHint={turnOnBlockedReason ?? undefined}
                   >
                     <Ionicons name="play" size={22} color="#fff" />

@@ -1,0 +1,48 @@
+OK    I5 | Rota protegida sem login mostra a tela de login | true
+OK    M1 | Erro de login: foco sai do botão Entrar e volta ao fechar | [true,true]
+FALHA K1 | Login com altura reduzida: o ScrollView do app (não a página) rola e "Entrar" fica alcançável | {"rola":false,"entrarVisivel":true}
+OK    K2 | Senha → Enter envia o login (fluxo pelo teclado) | true
+FALHA K3 | Cadastro com altura reduzida: o ScrollView do app rola e "Cadastrar" fica alcançável | {"rola":false,"cadastrarVisivel":true}
+OK    I3 | Monitor logo após login mostra leituras simuladas | true
+OK    T1 | Intervalos de 600 ms ativos após conexão automática | 1
+FALHA P-Conexão | Indicador no cabeçalho de Conexão | null
+FALHA P-Controle | Indicador no cabeçalho de Controle | null
+FALHA P-Monitor | Indicador no cabeçalho de Monitor | null
+FALHA P-Ajustes | Indicador no cabeçalho de Ajustes | "ERRO: Error: aba não encontrada: Ajustes em /monitor [\"Conexão\",\"Controle\",\"Monitor\",\"Configurações\"]"
+FALHA P-desc | Indicador tem descrição acessível completa | "ERRO: TypeError: Cannot read properties of undefined (reading 'getAttribute')"
+FALHA P-layout | Título e indicador sem truncamento e sem sobrepor "Reiniciar" (4 abas) | "ERRO: TypeError: Cannot read properties of undefined (reading 'parentElement')"
+FALHA P-faixa | Faixa grande antiga removida | true
+OK    E5 | Simulação ativa não mostra "Desconectado" no cabeçalho | false
+FALHA TAB | Rótulos completos, sem reticências, dentro da tela | ["Conexão:ok","Controle:ok","Monitor:ok","Configurações:ok"]
+FALHA TAB-a11y | Aba Ajustes mantém nome acessível com "Configurações" e o título da tela | "ERRO: Error: aba não encontrada: Ajustes em / [\"Conexão\",\"Controle\",\"Monitor\",\"Configurações\"]"
+FALHA W0 | Início: "Reabastecer (75%)" selecionado e "Água baixa" não | "ERRO: Error: scroll: not found Nível de água simulado"
+FALHA W1 | Selecionar 8%: destaque único e valor atual 8% | "ERRO: Error: no label: Nível de água: Água baixa (8%)"
+FALHA W2 | Monitor mostra 8% | false
+FALHA W3 | Selecionar 75%: destaque volta e Monitor mostra 75% | "ERRO: Error: aba não encontrada: Ajustes em /monitor [\"Conexão\",\"Controle\",\"Monitor\",\"Configurações\"]"
+FALHA W4 | Falha de envio: seleção anterior mantida e falha apresentada | "ERRO: Error: aba não encontrada: Ajustes em /monitor [\"Conexão\",\"Controle\",\"Monitor\",\"Configurações\"]"
+FALHA AP1 | Campo focado, digitar 40 e um toque em Aplicar → sucesso e "Em vigor: 40" | "ERRO: Error: scroll: not found Limiar de Detecção"
+FALHA AP2 | Valor inválido (250): erro, nenhum comando enviado, foco no campo | "ERRO: Error: no input Limiar de Detecção"
+FALHA AP3 | Campo vazio e relação inválida continuam com mensagens específicas | "ERRO: Error: no input Limiar de Detecção"
+FALHA AP4 | Apagar todo o valor continua possível (E2) | "ERRO: Error: no input Limiar de Detecção"
+FALHA AP5 | Após os erros, o valor em vigor continua 40 (Monitor: detecção ≥ 40) | false
+FALHA E1 | Elevada ativa fogo; "Sem fogo" cancela e persiste por 5 ciclos | "ERRO: Error: aba não encontrada: Ajustes em /monitor [\"Conexão\",\"Controle\",\"Monitor\",\"Configurações\"]"
+FALHA S1 | Título dos sensores sem palavras partidas e selo em linha própria (390 px) | {"palavrasPartidas":0,"seloAbaixo":false}
+OK    S2 | Mesmo critério em tela estreita (320 px) | {"palavrasPartidas":0,"seloAbaixo":true}
+FALHA P-320 | Indicador e título inteiros em 320 px (aba Ajustes) | "ERRO: Error: aba não encontrada: Ajustes em /monitor [\"Conexão\",\"Controle\",\"Monitor\",\"Configurações\"]"
+OK    EM1 | Pré-condição: movimento "Para frente" e bomba ligada | [true,true]
+FALHA EM2 | Um toque: modal grande com título e três estados; foco saiu do botão | "ERRO: TypeError: Cannot read properties of null (reading 'focus')"
+FALHA EM3 | Estado real da simulação: parado, bomba desligada, manual | [true,false,true]
+FALHA EM4 | Modal permanece aberto após 2 s sem ação do usuário | 0
+FALHA EM5 | Fechar: modal some, foco volta ao botão e nada é retomado | "ERRO: Error: not found: Fechar"
+FALHA EM6 | Monitor, AUTO + bomba + fogo elevado: um toque → um modal, Manual, fogo mantido | "ERRO: Error: not found: Ligar"
+FALHA EM7 | Botão Voltar/Esc fecha o resultado concluído e o foco volta ao botão do Monitor | {"modais":0,"focoNoBotao":false,"manual":true}
+FALHA EM8 | Dois toques rápidos geram uma única apresentação | "ERRO: TypeError: Cannot read properties of null (reading 'click')"
+FALHA EM9 | Falha parcial (bomba): destaque, resultado por ação e "Tentar novamente" | "ERRO: Error: not found: Ligar"
+OK    EM10 | Bomba continua ligada após a falha (sem sucesso falso) | true
+FALHA EM11 | Remover a falha e "Tentar novamente" atualiza o mesmo modal para sucesso | "ERRO: Error: no label: Falha simulada: Nenhuma"
+ROTEIRO INTERROMPIDO: Error: not found: Fechar
+    at window.__click (<anonymous>:6:64)
+    at <anonymous>:1:16
+    at <anonymous>:1:67
+
+TOTAL 43 | APROVADOS 9 | FALHAS 34

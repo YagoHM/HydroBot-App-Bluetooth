@@ -1,0 +1,59 @@
+OK    I5 | Rota protegida sem login mostra a tela de login | true
+OK    M1 | Erro de login: foco sai do botão Entrar e volta ao fechar | [true,true]
+OK    K1 | Login com altura reduzida: o ScrollView do app (não a página) rola e "Entrar" fica alcançável | {"rola":true,"entrarVisivel":true}
+OK    K2 | Senha → Enter envia o login (fluxo pelo teclado) | true
+OK    K3 | Cadastro com altura reduzida: o ScrollView do app rola e "Cadastrar" fica alcançável | {"rola":true,"cadastrarVisivel":true}
+OK    I3 | Monitor logo após login mostra leituras simuladas | true
+OK    T1 | Intervalos de 600 ms ativos após conexão automática | 1
+OK    P-Conexão | Indicador no cabeçalho de Conexão | "Simulação · conectado"
+OK    P-Controle | Indicador no cabeçalho de Controle | "Simulação · conectado"
+OK    P-Monitor | Indicador no cabeçalho de Monitor | "Simulação · conectado"
+OK    P-Ajustes | Indicador no cabeçalho de Ajustes | "Simulação · conectado"
+OK    P-desc | Indicador tem descrição acessível completa | "Modo de Simulação, conectado. Os dados são gerados pelo aplicativo, sem controlar um robô físico."
+OK    P-layout | Título e indicador sem truncamento e sem sobrepor "Reiniciar" (4 abas) | "ok"
+OK    P-faixa | Faixa grande antiga removida | false
+OK    E5 | Simulação ativa não mostra "Desconectado" no cabeçalho | false
+OK    TAB | Rótulos completos, sem reticências, dentro da tela | ["Conexão:ok","Controle:ok","Monitor:ok","Ajustes:ok"]
+OK    TAB-a11y | Aba Ajustes mantém nome acessível com "Configurações" e o título da tela | ["Ajustes, tela de Configurações","Configurações"]
+OK    W0 | Início: "Reabastecer (75%)" selecionado e "Água baixa" não | ["true","false","radiogroup"]
+OK    W1 | Selecionar 8%: destaque único e valor atual 8% | ["true","false",true]
+OK    W2 | Monitor mostra 8% | true
+OK    W3 | Selecionar 75%: destaque volta e Monitor mostra 75% | ["true","false",true]
+OK    W4 | Falha de envio: seleção anterior mantida e falha apresentada | ["true","false",true]
+OK    AP1 | Campo focado, digitar 40 e um toque em Aplicar → sucesso e "Em vigor: 40" | [true,true]
+OK    AP2 | Valor inválido (250): erro, nenhum comando enviado, foco no campo | [true,false,true]
+OK    AP3 | Campo vazio e relação inválida continuam com mensagens específicas | [true,true]
+OK    AP4 | Apagar todo o valor continua possível (E2) | ""
+OK    AP5 | Após os erros, o valor em vigor continua 40 (Monitor: detecção ≥ 40) | true
+OK    E1 | Elevada ativa fogo; "Sem fogo" cancela e persiste por 5 ciclos | [true,false]
+OK    S1 | Título dos sensores sem palavras partidas e selo em linha própria (390 px) | {"palavrasPartidas":0,"seloAbaixo":true}
+OK    S2 | Mesmo critério em tela estreita (320 px) | {"palavrasPartidas":0,"seloAbaixo":true}
+OK    P-320 | Indicador e título inteiros em 320 px (aba Ajustes) | [true,true,true]
+OK    EM1 | Pré-condição: movimento "Para frente" e bomba ligada | [true,true]
+OK    EM2 | Um toque: modal grande com título e três estados; foco saiu do botão | {"titulo":1,"estados":[1,1,1],"focoForaDoBotao":true}
+OK    EM3 | Estado real da simulação: parado, bomba desligada, manual | [true,true,true]
+OK    EM4 | Modal permanece aberto após 2 s sem ação do usuário | 1
+OK    EM5 | Fechar: modal some, foco volta ao botão e nada é retomado | {"modais":0,"focoNoBotao":true,"aindaParado":true,"bombaDesligada":true,"manual":true}
+OK    EM6 | Monitor, AUTO + bomba + fogo elevado: um toque → um modal, Manual, fogo mantido | {"autoAntes":true,"modais":1,"manual":true,"bombaDesligada":true,"fogo":true}
+OK    EM7 | Botão Voltar/Esc fecha o resultado concluído e o foco volta ao botão do Monitor | {"modais":0,"focoNoBotao":true,"manual":true}
+OK    EM8 | Dois toques rápidos geram uma única apresentação | 1
+OK    EM9 | Falha parcial (bomba): destaque, resultado por ação e "Tentar novamente" | {"titulo":1,"movimento":1,"bomba":true,"modo":1,"retry":1}
+OK    EM10 | Bomba continua ligada após a falha (sem sucesso falso) | true
+OK    EM11 | Remover a falha e "Tentar novamente" atualiza o mesmo modal para sucesso | {"sucesso":1,"parcial":0,"modais":1}
+OK    EM12 | Falha total (todos os comandos) | {"titulo":1,"falhas":3,"retry":1}
+OK    SS1 | Antes: velocidade aplicada na simulação aparece em Ajustes | true
+OK    SS2 | Após encerrar a sessão (Desconectar): nenhuma mensagem "aplicado na simulação" | [false,true]
+OK    T2 | Intervalos de 600 ms após Desconectar | 0
+OK    P-desc2 | Indicador após desconectar | "Simulação · desconectado"
+OK    EM13 | Emergência sem conexão: falha total informada | {"titulo":1,"semConexao":3}
+OK    T4 | 5 ciclos de conectar/desconectar: no máximo 1 intervalo ativo | [1,0]
+OK    I1 | "Configurar sensores" navega para Configurações | ["/settings",true]
+OK    I2 | "Sobre o HydroBot" abre o modal | true
+OK    I6 | Modal com fundo claro | "rgb(255, 255, 255)"
+OK    M2 | Sobre: foco sai e volta ao controle de origem | [true,true]
+OK    M4 | Reiniciar: foco sai e volta ao botão | [true,true]
+OK    I4 | Texto explicativo de Conexão sem corte | true
+OK    E4 | Sem emojis no texto visível | ""
+OK    CON | Console sem erros nem avisos | 0
+
+TOTAL 57 | APROVADOS 57 | FALHAS 0

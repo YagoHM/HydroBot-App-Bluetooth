@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
-  Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -22,6 +22,9 @@ export default function RegisterScreen() {
   const [errorModalVisible, setErrorModalVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const registerButtonRef = useRef<any>(null);
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmRef = useRef<TextInput>(null);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
   const { register } = useAuth();
 
@@ -51,69 +54,91 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <View style={styles.card}>
-        <Ionicons name="person-add" size={64} color="#DC2626" />
-        <Text style={styles.title}>Criar Conta</Text>
-        <Text style={styles.subtitle}>Preencha os dados para se cadastrar</Text>
+    // Android com edge-to-edge não redimensiona a janela ao abrir o teclado:
+    // "padding" + rolagem mantêm o campo em edição e as ações alcançáveis.
+    <KeyboardAvoidingView style={styles.container} behavior="padding">
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        <View style={styles.card}>
+          <Ionicons name="person-add" size={64} color="#DC2626" />
+          <Text style={styles.title}>Criar Conta</Text>
+          <Text style={styles.subtitle}>Preencha os dados para se cadastrar</Text>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Nome Completo"
-          placeholderTextColor="#6B7280"
-          value={name}
-          onChangeText={setName}
-        />
+          <TextInput
+            style={styles.input}
+            placeholder="Nome Completo"
+            placeholderTextColor="#6B7280"
+            value={name}
+            onChangeText={setName}
+            accessibilityLabel="Nome Completo"
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => emailRef.current?.focus()}
+          />
 
-        <TextInput
-          style={styles.input}
-          placeholder="E-mail"
-          placeholderTextColor="#6B7280"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
-        />
+          <TextInput
+            ref={emailRef}
+            style={styles.input}
+            placeholder="E-mail"
+            placeholderTextColor="#6B7280"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            value={email}
+            onChangeText={setEmail}
+            accessibilityLabel="E-mail"
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => passwordRef.current?.focus()}
+          />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Senha"
-          placeholderTextColor="#6B7280"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
+          <TextInput
+            ref={passwordRef}
+            style={styles.input}
+            placeholder="Senha"
+            placeholderTextColor="#6B7280"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+            accessibilityLabel="Senha"
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => confirmRef.current?.focus()}
+          />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Confirmar Senha"
-          placeholderTextColor="#6B7280"
-          secureTextEntry
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          onSubmitEditing={handleRegister}
-        />
+          <TextInput
+            ref={confirmRef}
+            style={styles.input}
+            placeholder="Confirmar Senha"
+            placeholderTextColor="#6B7280"
+            secureTextEntry
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            accessibilityLabel="Confirmar Senha"
+            returnKeyType="go"
+            onSubmitEditing={handleRegister}
+          />
 
-        <TouchableOpacity
-          ref={registerButtonRef}
-          style={styles.button}
-          onPress={handleRegister}
-          accessibilityRole="button"
-        >
-          <Text style={styles.buttonText}>Cadastrar</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            ref={registerButtonRef}
+            style={styles.button}
+            onPress={handleRegister}
+            accessibilityRole="button"
+          >
+            <Text style={styles.buttonText}>Cadastrar</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => router.replace('/login')}
-          accessibilityRole="link"
-          style={{ minHeight: 48, justifyContent: 'center' }}
-        >
-          <Text style={styles.link}>Já possui conta? Faça Login</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            onPress={() => router.replace('/login')}
+            accessibilityRole="link"
+            style={{ minHeight: 48, justifyContent: 'center' }}
+          >
+            <Text style={styles.link}>Já possui conta? Faça Login</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
 
       <AppModal
         visible={errorModalVisible}
@@ -141,6 +166,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#111827',
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,

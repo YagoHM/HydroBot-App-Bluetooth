@@ -1,0 +1,527 @@
+{
+  "base": "http://localhost:8090",
+  "viewport": "390x844",
+  "total": 57,
+  "falhas": 0,
+  "console": [],
+  "results": [
+    {
+      "id": "I5",
+      "desc": "Rota protegida sem login mostra a tela de login",
+      "expected": "true",
+      "observed": true,
+      "result": "APROVADO"
+    },
+    {
+      "id": "M1",
+      "desc": "Erro de login: foco sai do botão Entrar e volta ao fechar",
+      "expected": "[true,true]",
+      "observed": [
+        true,
+        true
+      ],
+      "result": "APROVADO"
+    },
+    {
+      "id": "K1",
+      "desc": "Login com altura reduzida: o ScrollView do app (não a página) rola e \"Entrar\" fica alcançável",
+      "expected": "{\"rola\":true,\"entrarVisivel\":true}",
+      "observed": {
+        "rola": true,
+        "entrarVisivel": true
+      },
+      "result": "APROVADO"
+    },
+    {
+      "id": "K2",
+      "desc": "Senha → Enter envia o login (fluxo pelo teclado)",
+      "expected": "true",
+      "observed": true,
+      "result": "APROVADO"
+    },
+    {
+      "id": "K3",
+      "desc": "Cadastro com altura reduzida: o ScrollView do app rola e \"Cadastrar\" fica alcançável",
+      "expected": "{\"rola\":true,\"cadastrarVisivel\":true}",
+      "observed": {
+        "rola": true,
+        "cadastrarVisivel": true
+      },
+      "result": "APROVADO"
+    },
+    {
+      "id": "I3",
+      "desc": "Monitor logo após login mostra leituras simuladas",
+      "expected": "true",
+      "observed": true,
+      "result": "APROVADO"
+    },
+    {
+      "id": "T1",
+      "desc": "Intervalos de 600 ms ativos após conexão automática",
+      "expected": "1",
+      "observed": 1,
+      "result": "APROVADO"
+    },
+    {
+      "id": "P-Conexão",
+      "desc": "Indicador no cabeçalho de Conexão",
+      "expected": "\"Simulação · conectado\"",
+      "observed": "Simulação · conectado",
+      "result": "APROVADO"
+    },
+    {
+      "id": "P-Controle",
+      "desc": "Indicador no cabeçalho de Controle",
+      "expected": "\"Simulação · conectado\"",
+      "observed": "Simulação · conectado",
+      "result": "APROVADO"
+    },
+    {
+      "id": "P-Monitor",
+      "desc": "Indicador no cabeçalho de Monitor",
+      "expected": "\"Simulação · conectado\"",
+      "observed": "Simulação · conectado",
+      "result": "APROVADO"
+    },
+    {
+      "id": "P-Ajustes",
+      "desc": "Indicador no cabeçalho de Ajustes",
+      "expected": "\"Simulação · conectado\"",
+      "observed": "Simulação · conectado",
+      "result": "APROVADO"
+    },
+    {
+      "id": "P-desc",
+      "desc": "Indicador tem descrição acessível completa",
+      "expected": "(o) => /Modo de Simulação, conectado\\. Os dados são gerados pelo aplicativo, sem controlar um robô físico\\./.test(o)",
+      "observed": "Modo de Simulação, conectado. Os dados são gerados pelo aplicativo, sem controlar um robô físico.",
+      "result": "APROVADO"
+    },
+    {
+      "id": "P-layout",
+      "desc": "Título e indicador sem truncamento e sem sobrepor \"Reiniciar\" (4 abas)",
+      "expected": "\"ok\"",
+      "observed": "ok",
+      "result": "APROVADO"
+    },
+    {
+      "id": "P-faixa",
+      "desc": "Faixa grande antiga removida",
+      "expected": "false",
+      "observed": false,
+      "result": "APROVADO"
+    },
+    {
+      "id": "E5",
+      "desc": "Simulação ativa não mostra \"Desconectado\" no cabeçalho",
+      "expected": "false",
+      "observed": false,
+      "result": "APROVADO"
+    },
+    {
+      "id": "TAB",
+      "desc": "Rótulos completos, sem reticências, dentro da tela",
+      "expected": "[\"Conexão:ok\",\"Controle:ok\",\"Monitor:ok\",\"Ajustes:ok\"]",
+      "observed": [
+        "Conexão:ok",
+        "Controle:ok",
+        "Monitor:ok",
+        "Ajustes:ok"
+      ],
+      "result": "APROVADO"
+    },
+    {
+      "id": "TAB-a11y",
+      "desc": "Aba Ajustes mantém nome acessível com \"Configurações\" e o título da tela",
+      "expected": "[\"Ajustes, tela de Configurações\",\"Configurações\"]",
+      "observed": [
+        "Ajustes, tela de Configurações",
+        "Configurações"
+      ],
+      "result": "APROVADO"
+    },
+    {
+      "id": "W0",
+      "desc": "Início: \"Reabastecer (75%)\" selecionado e \"Água baixa\" não",
+      "expected": "[\"true\",\"false\",\"radiogroup\"]",
+      "observed": [
+        "true",
+        "false",
+        "radiogroup"
+      ],
+      "result": "APROVADO"
+    },
+    {
+      "id": "W1",
+      "desc": "Selecionar 8%: destaque único e valor atual 8%",
+      "expected": "[\"true\",\"false\",true]",
+      "observed": [
+        "true",
+        "false",
+        true
+      ],
+      "result": "APROVADO"
+    },
+    {
+      "id": "W2",
+      "desc": "Monitor mostra 8%",
+      "expected": "true",
+      "observed": true,
+      "result": "APROVADO"
+    },
+    {
+      "id": "W3",
+      "desc": "Selecionar 75%: destaque volta e Monitor mostra 75%",
+      "expected": "[\"true\",\"false\",true]",
+      "observed": [
+        "true",
+        "false",
+        true
+      ],
+      "result": "APROVADO"
+    },
+    {
+      "id": "W4",
+      "desc": "Falha de envio: seleção anterior mantida e falha apresentada",
+      "expected": "[\"true\",\"false\",true]",
+      "observed": [
+        "true",
+        "false",
+        true
+      ],
+      "result": "APROVADO"
+    },
+    {
+      "id": "AP1",
+      "desc": "Campo focado, digitar 40 e um toque em Aplicar → sucesso e \"Em vigor: 40\"",
+      "expected": "[true,true]",
+      "observed": [
+        true,
+        true
+      ],
+      "result": "APROVADO"
+    },
+    {
+      "id": "AP2",
+      "desc": "Valor inválido (250): erro, nenhum comando enviado, foco no campo",
+      "expected": "[true,false,true]",
+      "observed": [
+        true,
+        false,
+        true
+      ],
+      "result": "APROVADO"
+    },
+    {
+      "id": "AP3",
+      "desc": "Campo vazio e relação inválida continuam com mensagens específicas",
+      "expected": "[true,true]",
+      "observed": [
+        true,
+        true
+      ],
+      "result": "APROVADO"
+    },
+    {
+      "id": "AP4",
+      "desc": "Apagar todo o valor continua possível (E2)",
+      "expected": "\"\"",
+      "observed": "",
+      "result": "APROVADO"
+    },
+    {
+      "id": "AP5",
+      "desc": "Após os erros, o valor em vigor continua 40 (Monitor: detecção ≥ 40)",
+      "expected": "true",
+      "observed": true,
+      "result": "APROVADO"
+    },
+    {
+      "id": "E1",
+      "desc": "Elevada ativa fogo; \"Sem fogo\" cancela e persiste por 5 ciclos",
+      "expected": "[true,false]",
+      "observed": [
+        true,
+        false
+      ],
+      "result": "APROVADO"
+    },
+    {
+      "id": "S1",
+      "desc": "Título dos sensores sem palavras partidas e selo em linha própria (390 px)",
+      "expected": "{\"palavrasPartidas\":0,\"seloAbaixo\":true}",
+      "observed": {
+        "palavrasPartidas": 0,
+        "seloAbaixo": true
+      },
+      "result": "APROVADO"
+    },
+    {
+      "id": "S2",
+      "desc": "Mesmo critério em tela estreita (320 px)",
+      "expected": "{\"palavrasPartidas\":0,\"seloAbaixo\":true}",
+      "observed": {
+        "palavrasPartidas": 0,
+        "seloAbaixo": true
+      },
+      "result": "APROVADO"
+    },
+    {
+      "id": "P-320",
+      "desc": "Indicador e título inteiros em 320 px (aba Ajustes)",
+      "expected": "[true,true,true]",
+      "observed": [
+        true,
+        true,
+        true
+      ],
+      "result": "APROVADO"
+    },
+    {
+      "id": "EM1",
+      "desc": "Pré-condição: movimento \"Para frente\" e bomba ligada",
+      "expected": "[true,true]",
+      "observed": [
+        true,
+        true
+      ],
+      "result": "APROVADO"
+    },
+    {
+      "id": "EM2",
+      "desc": "Um toque: modal grande com título e três estados; foco saiu do botão",
+      "expected": "{\"titulo\":1,\"estados\":[1,1,1],\"focoForaDoBotao\":true}",
+      "observed": {
+        "titulo": 1,
+        "estados": [
+          1,
+          1,
+          1
+        ],
+        "focoForaDoBotao": true
+      },
+      "result": "APROVADO"
+    },
+    {
+      "id": "EM3",
+      "desc": "Estado real da simulação: parado, bomba desligada, manual",
+      "expected": "[true,true,true]",
+      "observed": [
+        true,
+        true,
+        true
+      ],
+      "result": "APROVADO"
+    },
+    {
+      "id": "EM4",
+      "desc": "Modal permanece aberto após 2 s sem ação do usuário",
+      "expected": "1",
+      "observed": 1,
+      "result": "APROVADO"
+    },
+    {
+      "id": "EM5",
+      "desc": "Fechar: modal some, foco volta ao botão e nada é retomado",
+      "expected": "{\"modais\":0,\"focoNoBotao\":true,\"aindaParado\":true,\"bombaDesligada\":true,\"manual\":true}",
+      "observed": {
+        "modais": 0,
+        "focoNoBotao": true,
+        "aindaParado": true,
+        "bombaDesligada": true,
+        "manual": true
+      },
+      "result": "APROVADO"
+    },
+    {
+      "id": "EM6",
+      "desc": "Monitor, AUTO + bomba + fogo elevado: um toque → um modal, Manual, fogo mantido",
+      "expected": "{\"autoAntes\":true,\"modais\":1,\"manual\":true,\"bombaDesligada\":true,\"fogo\":true}",
+      "observed": {
+        "autoAntes": true,
+        "modais": 1,
+        "manual": true,
+        "bombaDesligada": true,
+        "fogo": true
+      },
+      "result": "APROVADO"
+    },
+    {
+      "id": "EM7",
+      "desc": "Botão Voltar/Esc fecha o resultado concluído e o foco volta ao botão do Monitor",
+      "expected": "{\"modais\":0,\"focoNoBotao\":true,\"manual\":true}",
+      "observed": {
+        "modais": 0,
+        "focoNoBotao": true,
+        "manual": true
+      },
+      "result": "APROVADO"
+    },
+    {
+      "id": "EM8",
+      "desc": "Dois toques rápidos geram uma única apresentação",
+      "expected": "1",
+      "observed": 1,
+      "result": "APROVADO"
+    },
+    {
+      "id": "EM9",
+      "desc": "Falha parcial (bomba): destaque, resultado por ação e \"Tentar novamente\"",
+      "expected": "{\"titulo\":1,\"movimento\":1,\"bomba\":true,\"modo\":1,\"retry\":1}",
+      "observed": {
+        "titulo": 1,
+        "movimento": 1,
+        "bomba": true,
+        "modo": 1,
+        "retry": 1
+      },
+      "result": "APROVADO"
+    },
+    {
+      "id": "EM10",
+      "desc": "Bomba continua ligada após a falha (sem sucesso falso)",
+      "expected": "true",
+      "observed": true,
+      "result": "APROVADO"
+    },
+    {
+      "id": "EM11",
+      "desc": "Remover a falha e \"Tentar novamente\" atualiza o mesmo modal para sucesso",
+      "expected": "{\"sucesso\":1,\"parcial\":0,\"modais\":1}",
+      "observed": {
+        "sucesso": 1,
+        "parcial": 0,
+        "modais": 1
+      },
+      "result": "APROVADO"
+    },
+    {
+      "id": "EM12",
+      "desc": "Falha total (todos os comandos)",
+      "expected": "{\"titulo\":1,\"falhas\":3,\"retry\":1}",
+      "observed": {
+        "titulo": 1,
+        "falhas": 3,
+        "retry": 1
+      },
+      "result": "APROVADO"
+    },
+    {
+      "id": "SS1",
+      "desc": "Antes: velocidade aplicada na simulação aparece em Ajustes",
+      "expected": "true",
+      "observed": true,
+      "result": "APROVADO"
+    },
+    {
+      "id": "SS2",
+      "desc": "Após encerrar a sessão (Desconectar): nenhuma mensagem \"aplicado na simulação\"",
+      "expected": "[false,true]",
+      "observed": [
+        false,
+        true
+      ],
+      "result": "APROVADO"
+    },
+    {
+      "id": "T2",
+      "desc": "Intervalos de 600 ms após Desconectar",
+      "expected": "0",
+      "observed": 0,
+      "result": "APROVADO"
+    },
+    {
+      "id": "P-desc2",
+      "desc": "Indicador após desconectar",
+      "expected": "\"Simulação · desconectado\"",
+      "observed": "Simulação · desconectado",
+      "result": "APROVADO"
+    },
+    {
+      "id": "EM13",
+      "desc": "Emergência sem conexão: falha total informada",
+      "expected": "{\"titulo\":1,\"semConexao\":3}",
+      "observed": {
+        "titulo": 1,
+        "semConexao": 3
+      },
+      "result": "APROVADO"
+    },
+    {
+      "id": "T4",
+      "desc": "5 ciclos de conectar/desconectar: no máximo 1 intervalo ativo",
+      "expected": "[1,0]",
+      "observed": [
+        1,
+        0
+      ],
+      "result": "APROVADO"
+    },
+    {
+      "id": "I1",
+      "desc": "\"Configurar sensores\" navega para Configurações",
+      "expected": "[\"/settings\",true]",
+      "observed": [
+        "/settings",
+        true
+      ],
+      "result": "APROVADO"
+    },
+    {
+      "id": "I2",
+      "desc": "\"Sobre o HydroBot\" abre o modal",
+      "expected": "true",
+      "observed": true,
+      "result": "APROVADO"
+    },
+    {
+      "id": "I6",
+      "desc": "Modal com fundo claro",
+      "expected": "\"rgb(255, 255, 255)\"",
+      "observed": "rgb(255, 255, 255)",
+      "result": "APROVADO"
+    },
+    {
+      "id": "M2",
+      "desc": "Sobre: foco sai e volta ao controle de origem",
+      "expected": "[true,true]",
+      "observed": [
+        true,
+        true
+      ],
+      "result": "APROVADO"
+    },
+    {
+      "id": "M4",
+      "desc": "Reiniciar: foco sai e volta ao botão",
+      "expected": "[true,true]",
+      "observed": [
+        true,
+        true
+      ],
+      "result": "APROVADO"
+    },
+    {
+      "id": "I4",
+      "desc": "Texto explicativo de Conexão sem corte",
+      "expected": "true",
+      "observed": true,
+      "result": "APROVADO"
+    },
+    {
+      "id": "E4",
+      "desc": "Sem emojis no texto visível",
+      "expected": "\"\"",
+      "observed": "",
+      "result": "APROVADO"
+    },
+    {
+      "id": "CON",
+      "desc": "Console sem erros nem avisos",
+      "expected": "0",
+      "observed": 0,
+      "result": "APROVADO"
+    }
+  ]
+}

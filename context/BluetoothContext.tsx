@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Updates from "expo-updates";
 import React, {
+  type MutableRefObject,
   createContext,
   useCallback,
   useContext,
@@ -14,6 +15,13 @@ import {
   parseHydroBotMessage,
   type HydroBotTelemetry,
 } from "../services/hydroBotProtocol";
+import {
+  EMERGENCY_STEPS,
+  describeEmergency,
+  type CommandOutcome,
+  type EmergencyReport,
+  type EmergencyStep,
+} from "../services/emergency";
 import {
   createSimState,
   simApplyCommand,
@@ -37,26 +45,15 @@ export interface DeviceInfo {
   simulated: boolean;
 }
 
-/**
- * Resultado de um comando, sem exagerar o que se sabe:
- * - "applied-sim": a simulação aplicou o comando;
- * - "sent": a escrita BLE terminou, mas o dispositivo ainda não confirmou;
- * - "failed": o comando não foi aplicado/enviado.
- */
-export type CommandOutcome =
-  | { ok: true; status: "applied-sim" | "sent"; command: string }
-  | { ok: false; status: "failed"; command: string; error: string };
+export type { CommandOutcome, EmergencyReport, EmergencyStep } from "../services/emergency";
 
-export interface EmergencyStep {
-  command: string;
-  label: string;
-  outcome: CommandOutcome;
-}
-
-export interface EmergencyReport {
-  at: number;
+/** Estado da parada de emergência apresentada pelo modal único. */
+export interface EmergencyState {
+  id: number;
+  phase: "running" | "done";
   source: DataSource;
-  steps: EmergencyStep[];
+  startedAt: number;
+  report: EmergencyReport | null;
 }
 
 export interface Notice {
@@ -97,9 +94,19 @@ interface BluetoothContextType {
   telemetry: Telemetry | null;
   sendCommand: (command: string) => Promise<CommandOutcome>;
   waitForConfirmation: (options: ConfirmOptions) => Promise<boolean>;
+  /**
+   * Dispara a parada imediatamente. Se já houver uma em andamento, devolve a
+   * mesma operação (sem envios concorrentes).
+   */
   emergencyStop: () => Promise<EmergencyReport>;
-  lastEmergency: EmergencyReport | null;
+  /** Parada em andamento ou resultado aberto (null depois de fechado). */
+  emergency: EmergencyState | null;
+  /** Fecha o resultado; ignorado enquanto a parada está em andamento. */
   dismissEmergency: () => void;
+  /** Botão que acionou a parada, para devolver o foco ao fechar o modal. */
+  emergencyOriginRef: MutableRefObject<any>;
+  /** Muda sempre que a sessão (modo/conexão) é encerrada. */
+  sessionId: number;
   toggleMockMode: () => Promise<boolean>;
   restartApp: () => Promise<void>;
   notice: Notice | null;
@@ -119,12 +126,6 @@ export const SIM_DEVICE: DeviceInfo = {
   name: "HydroBot simulado",
   simulated: true,
 };
-
-const EMERGENCY_STEPS: [string, string][] = [
-  ["STOP", "Parar movimento"],
-  ["PUMP_OFF", "Desligar bomba"],
-  ["MODE_MANUAL", "Sair do modo automático"],
-];
 
 export function announce(message: string) {
   try {
@@ -159,9 +160,8 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isScanning, setIsScanning] = useState(false);
   const [telemetry, setTelemetry] = useState<Telemetry | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
-  const [lastEmergency, setLastEmergency] = useState<EmergencyReport | null>(
-    null,
-  );
+  const [emergency, setEmergency] = useState<EmergencyState | null>(null);
+  const [sessionId, setSessionId] = useState(0);
   const [simFailure, setSimFailureState] = useState<SimFailure>("none");
 
   // Cada sessão (modo + conexão) tem uma geração. Callbacks de sessões
@@ -178,6 +178,9 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({
   const bleRecordRef = useRef<Partial<HydroBotTelemetry>>({});
   const lineBufferRef = useRef("");
   const listenersRef = useRef(new Set<(e: DeviceEvent) => void>());
+  const emergencyRunRef = useRef<Promise<EmergencyReport> | null>(null);
+  const emergencyIdRef = useRef(0);
+  const emergencyOriginRef = useRef<any>(null);
 
   const updateConnection = useCallback((s: ConnectionState) => {
     connectionRef.current = s;
@@ -205,6 +208,7 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({
   /** Encerra a sessão atual de forma síncrona e devolve a conexão BLE a fechar. */
   const invalidateSession = useCallback(() => {
     genRef.current += 1;
+    setSessionId(genRef.current);
     clearTimers();
     if (simIntervalRef.current) {
       clearInterval(simIntervalRef.current);
@@ -220,7 +224,6 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({
     setTelemetry(null);
     setDevices([]);
     setIsScanning(false);
-    setLastEmergency(null);
     return conn;
   }, [clearTimers, updateConnection]);
 
@@ -435,27 +438,40 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({
     [],
   );
 
-  const emergencyStop = useCallback(async (): Promise<EmergencyReport> => {
+  const emergencyStop = useCallback((): Promise<EmergencyReport> => {
+    // Toques repetidos durante o envio não iniciam operações concorrentes.
+    if (emergencyRunRef.current) return emergencyRunRef.current;
+    const id = ++emergencyIdRef.current;
     const source: DataSource = isMockRef.current ? "sim" : "ble";
-    const steps: EmergencyStep[] = [];
-    // Cada comando é tentado mesmo que o anterior falhe.
-    for (const [command, label] of EMERGENCY_STEPS) {
-      steps.push({ command, label, outcome: await sendCommand(command) });
-    }
-    const report: EmergencyReport = { at: Date.now(), source, steps };
-    setLastEmergency(report);
-    const failures = steps.filter((s) => !s.outcome.ok).length;
-    announce(
-      failures === 0
-        ? source === "sim"
-          ? "Parada de emergência aplicada na simulação"
-          : "Parada de emergência enviada. Aguarde a confirmação do robô."
-        : `Parada de emergência com ${failures} falha${failures > 1 ? "s" : ""}. Verifique o robô.`,
-    );
-    return report;
+    const startedAt = Date.now();
+    setEmergency({ id, phase: "running", source, startedAt, report: null });
+    announce("Executando parada de emergência");
+
+    const run = (async () => {
+      const steps: EmergencyStep[] = [];
+      // Cada comando é tentado mesmo que o anterior falhe.
+      for (const { command, label } of EMERGENCY_STEPS) {
+        steps.push({ command, label, outcome: await sendCommand(command) });
+      }
+      const report: EmergencyReport = { at: startedAt, source, steps };
+      // Só o acionamento mais recente atualiza o modal.
+      if (id === emergencyIdRef.current) {
+        setEmergency({ id, phase: "done", source, startedAt, report });
+        announce(describeEmergency(report).announcement);
+      }
+      return report;
+    })();
+    emergencyRunRef.current = run;
+    void run.finally(() => {
+      if (emergencyRunRef.current === run) emergencyRunRef.current = null;
+    });
+    return run;
   }, [sendCommand]);
 
-  const dismissEmergency = useCallback(() => setLastEmergency(null), []);
+  const dismissEmergency = useCallback(() => {
+    if (emergencyRunRef.current) return;
+    setEmergency(null);
+  }, []);
 
   // ─── Busca e conexão ──────────────────────────────────────────────────────
 
@@ -541,7 +557,6 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({
         later(gen, 800, () => {
           simRef.current = createSimState(SIM_SEED);
           setDevice(SIM_DEVICE);
-          setLastEmergency(null);
           updateConnection("connected");
           announce("Conectado ao dispositivo simulado");
           // A primeira leitura chega no primeiro ciclo; até lá a interface mostra "Aguardando dados".
@@ -570,7 +585,6 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({
         bleRecordRef.current = {};
         const name = conn.name ?? target.name;
         setDevice({ id: conn.id, name, simulated: false });
-        setLastEmergency(null);
         updateConnection("connected");
         announce(`Conectado por Bluetooth BLE a ${name ?? "dispositivo"}`);
         later(gen, 1000, () => {
@@ -663,8 +677,10 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({
         sendCommand,
         waitForConfirmation,
         emergencyStop,
-        lastEmergency,
+        emergency,
         dismissEmergency,
+        emergencyOriginRef,
+        sessionId,
         toggleMockMode,
         restartApp,
         notice,

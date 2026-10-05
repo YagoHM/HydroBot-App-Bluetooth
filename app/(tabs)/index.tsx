@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import ModeBanner from '../../components/ModeBanner';
 import { useBluetooth, type DeviceInfo } from '../../context/BluetoothContext';
 
 export default function HomeScreen() {
@@ -14,6 +13,7 @@ export default function HomeScreen() {
     connect,
     disconnect,
     isMockMode,
+    bleAvailable,
   } = useBluetooth();
   const connecting = connectionState === 'connecting';
 
@@ -43,7 +43,6 @@ export default function HomeScreen() {
     const simulated = device?.simulated ?? isMockMode;
     return (
       <View style={styles.container}>
-        <ModeBanner />
         <View style={styles.connectedContainer}>
           <View style={styles.connectedCard}>
             <Ionicons
@@ -80,7 +79,6 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <ModeBanner />
       <View style={styles.header}>
         <Text style={styles.title} accessibilityRole="header">
           {isMockMode ? 'Dispositivo simulado' : 'Dispositivos Bluetooth'}
@@ -94,6 +92,12 @@ export default function HomeScreen() {
                 ? 'Busque o HydroBot simulado para testar a interface sem o robô.'
                 : 'Busque pelo HydroBot compatível com Bluetooth Low Energy (BLE).'}
         </Text>
+        {isMockMode && (
+          <Text style={styles.subtitle}>
+            Na simulação, os dados são gerados pelo aplicativo, sem controlar um robô físico.
+            {!bleAvailable ? ' Versão web: a conexão física não está disponível.' : ''}
+          </Text>
+        )}
       </View>
 
       <FlatList
@@ -117,6 +121,7 @@ export default function HomeScreen() {
         disabled={connecting}
         accessibilityRole="button"
         accessibilityState={{ disabled: connecting, busy: isScanning }}
+        aria-busy={isScanning}
         accessibilityLabel={isScanning ? 'Parar busca' : 'Buscar dispositivos'}
       >
         {isScanning ? (

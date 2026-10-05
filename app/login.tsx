@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
-  Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -23,6 +23,7 @@ export default function LoginScreen() {
   const [errorModalVisible, setErrorModalVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const loginButtonRef = useRef<any>(null);
+  const passwordRef = useRef<TextInput>(null);
   const { login, findUser } = useAuth();
 
   const showError = (message: string) => {
@@ -48,52 +49,64 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <View style={styles.card}>
-        <Ionicons name="shield-checkmark" size={64} color="#DC2626" />
-        <Text style={styles.title}>HydroBot</Text>
-        <Text style={styles.subtitle}>Digite o e-mail e a senha para continuar</Text>
+    // Android com edge-to-edge não redimensiona a janela ao abrir o teclado:
+    // "padding" + rolagem mantêm o campo em edição e as ações alcançáveis.
+    <KeyboardAvoidingView style={styles.container} behavior="padding">
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        <View style={styles.card}>
+          <Ionicons name="shield-checkmark" size={64} color="#DC2626" />
+          <Text style={styles.title}>HydroBot</Text>
+          <Text style={styles.subtitle}>Digite o e-mail e a senha para continuar</Text>
 
-        <TextInput
-          style={styles.input}
-          placeholder="E-mail"
-          placeholderTextColor="#6B7280"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
-        />
+          <TextInput
+            style={styles.input}
+            placeholder="E-mail"
+            placeholderTextColor="#6B7280"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            value={email}
+            onChangeText={setEmail}
+            accessibilityLabel="E-mail"
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => passwordRef.current?.focus()}
+          />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Senha"
-          placeholderTextColor="#6B7280"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          onSubmitEditing={handleLogin}
-        />
+          <TextInput
+            ref={passwordRef}
+            style={styles.input}
+            placeholder="Senha"
+            placeholderTextColor="#6B7280"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+            accessibilityLabel="Senha"
+            returnKeyType="go"
+            onSubmitEditing={handleLogin}
+          />
 
-        <TouchableOpacity
-          ref={loginButtonRef}
-          style={styles.button}
-          onPress={handleLogin}
-          accessibilityRole="button"
-        >
-          <Text style={styles.buttonText}>Entrar</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            ref={loginButtonRef}
+            style={styles.button}
+            onPress={handleLogin}
+            accessibilityRole="button"
+          >
+            <Text style={styles.buttonText}>Entrar</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => router.replace('/register')}
-          accessibilityRole="link"
-          style={{ minHeight: 48, justifyContent: 'center' }}
-        >
-          <Text style={styles.link}>Não possui conta? Cadastre-se</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            onPress={() => router.replace('/register')}
+            accessibilityRole="link"
+            style={{ minHeight: 48, justifyContent: 'center' }}
+          >
+            <Text style={styles.link}>Não possui conta? Cadastre-se</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
 
       <AppModal
         visible={errorModalVisible}
@@ -110,6 +123,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#111827',
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useBluetooth } from '../context/BluetoothContext';
 import { useCommandFeedback } from '../hooks/useCommandFeedback';
 import { ACK_PREFIX_BY_COMMAND } from '../services/hydroBotProtocol';
 import type { Telemetry } from '../services/telemetry';
@@ -50,6 +51,20 @@ export default function SliderSetting({
   const draggingRef = useRef(false);
   const lastRemoteRef = useRef(remoteValue);
   const fb = useCommandFeedback();
+  const { sessionId } = useBluetooth();
+  const sessionRef = useRef(sessionId);
+
+  // Nova sessão: descarta o valor local da sessão anterior e volta ao que o
+  // dispositivo informar (ou ao padrão do app, sinalizado na tela).
+  useEffect(() => {
+    if (sessionRef.current === sessionId) return;
+    sessionRef.current = sessionId;
+    lastRemoteRef.current = remoteValue;
+    draggingRef.current = false;
+    setValue(remoteValue ?? fallback);
+    // remoteValue/fallback lidos só no momento da troca de sessão
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
 
   // Sincroniza apenas quando a telemetria muda de fato e não há arraste em curso.
   useEffect(() => {
@@ -67,6 +82,7 @@ export default function SliderSetting({
   const commit = async (raw: number) => {
     const next = clamp(raw);
     const previous = remoteValue ?? fallback;
+    const session = sessionRef.current;
     setValue(next);
     const { outcome } = await fb.run(`${command}:${next}`, {
       label: `${title} = ${next}${unit}`,
@@ -77,7 +93,7 @@ export default function SliderSetting({
       },
     });
     // Sem envio, o controle volta ao último valor conhecido para não fingir sucesso.
-    if (!outcome.ok) setValue(previous);
+    if (!outcome.ok && session === sessionRef.current) setValue(previous);
   };
 
   const shown = clamp(value);
@@ -146,8 +162,10 @@ export default function SliderSetting({
         </Text>
       </View>
       <Text style={styles.description}>{description}</Text>
-      {remoteValue === undefined && !disabled && (
-        <Text style={styles.description}>O dispositivo ainda não informou o valor atual.</Text>
+      {remoteValue === undefined && (
+        <Text style={styles.description}>
+          Sem leitura do dispositivo: o valor mostrado é o padrão do app, não o valor em uso no robô.
+        </Text>
       )}
       <FeedbackLine feedback={fb.feedback} />
     </View>

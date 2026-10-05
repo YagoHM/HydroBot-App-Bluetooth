@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import EmergencyStopBar from '../../components/EmergencyStopBar';
-import ModeBanner from '../../components/ModeBanner';
 import NotConnectedCard from '../../components/NotConnectedCard';
 import { useBluetooth } from '../../context/BluetoothContext';
 import {
@@ -56,8 +55,11 @@ export default function MonitorScreen() {
 
   return (
     <View style={styles.screen}>
-      <ModeBanner />
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
         {!isConnected ? (
           <NotConnectedCard what="ver os dados" />
         ) : !telemetry ? (
@@ -230,20 +232,21 @@ function TelemetryView({ telemetry: t, now }: { telemetry: Telemetry; now: numbe
 
       {/* Sensores */}
       <View style={styles.card}>
-        <View style={styles.cardTitleRow}>
+        {/* Título e selo em linhas próprias: o selo não comprime o título. */}
+        <View style={[styles.cardTitleRow, t.calibrated && styles.cardTitleRowTight]}>
           <Ionicons name="thermometer-outline" size={32} color="#B91C1C" />
           <Text style={styles.cardTitle} accessibilityRole="header">
             Sensores de Fogo{sim ? ' (simulados)' : ''}
           </Text>
-          {t.calibrated && (
-            <View style={styles.calibratedBadge}>
-              <Ionicons name="checkmark-circle" size={16} color="#047857" />
-              <Text style={styles.calibratedText}>
-                {sim ? 'Calibração simulada' : 'Calibrado (informado)'}
-              </Text>
-            </View>
-          )}
         </View>
+        {t.calibrated && (
+          <View style={styles.calibratedBadge}>
+            <Ionicons name="checkmark-circle" size={16} color="#047857" />
+            <Text style={styles.calibratedText}>
+              {sim ? 'Calibração simulada' : 'Calibrado (informado pelo dispositivo)'}
+            </Text>
+          </View>
+        )}
 
         <View style={styles.sensorsContainer}>
           <SensorCard name="Esquerdo" icon="arrow-back" value={t.sensor_left} delta={t.delta_left} params={params} />
@@ -507,13 +510,18 @@ const styles = StyleSheet.create({
     color: '#4B5563',
     fontWeight: '600',
   },
+  cardTitleRowTight: {
+    marginBottom: 8,
+  },
   calibratedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'flex-start',
     backgroundColor: '#ECFDF5',
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
+    marginBottom: 16,
   },
   calibratedText: {
     fontSize: 12,
