@@ -1,6 +1,8 @@
 # HydroBot — ajustes de IHC (3ª entrega)
 
 > Detalhamento por arquivo. O resultado consolidado e mais recente das verificações está em [`RELATORIO_ALTERACOES_IHC_HYDROBOT.md`](../RELATORIO_ALTERACOES_IHC_HYDROBOT.md).
+>
+> Este detalhamento corresponde à versão `f103d1a`. Os ajustes posteriores (`56b1ce2`: indicador compacto no cabeçalho, aba “Ajustes”, modal de emergência, seleção de água, teclado no login e em Aplicar, limpeza de mensagens por sessão) estão na seção A do relatório. As capturas citadas aqui (`docs/evidencias/web/`) foram substituídas por `docs/evidencias/verificacao/` e continuam disponíveis no commit `e34fe74`.
 
 Branch: `ihc-v3-ajustes`, criada a partir de `master` em `a806ef9` (a mesma versão usada na análise).
 Os 11 problemas dos testes em sala não foram reexecutados aqui. Os itens abaixo são ajustes adicionais vindos da inspeção do código e da interface, e **não** são resultados de novos testes com participantes.

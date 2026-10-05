@@ -4,25 +4,90 @@
 
 | Item | Valor |
 | --- | --- |
-| Repositório | `origin` = `https://github.com/YagoHM/HydroBotBluetooth.git` (remoto configurado na cópia local; o pedido inicial citava `YagoHM/HydroBot-App-Bluetooth`) |
+| Repositório | `https://github.com/YagoHM/HydroBot-App-Bluetooth` (o `origin` local aponta para `YagoHM/HydroBotBluetooth.git`, que o GitHub redireciona) |
 | Base analisada | `master` @ `a806ef9` (“Cadastro & Login”) |
-| Branch das alterações | `ihc-v3-ajustes` (enviada ao `origin` junto com este relatório) |
-| Commits das alterações | `2c41ee4` (ajustes de IHC), `0880d3d` (conexão automática da simulação, que evita a regressão do I3), `3cfd647` (relatório e scripts) e **`f103d1a`** (dependências alinhadas ao SDK 54 e retorno de foco nos modais) |
-| **Versão verificada neste relatório** | Código de **`f103d1a`**. O commit seguinte só atualiza este relatório, o `docs/IHC-V3-ajustes.md` e as evidências |
-| Escopo | Interface mobile, usabilidade, comunicabilidade e acessibilidade. O Modo de Simulação é um recurso para testar a interface |
+| Branch | `ihc-v3-ajustes` |
+| Versão anterior revisada | `e34fe74` (relatório), com código de `f103d1a` |
+| **Versão verificada neste relatório** | Código de **`56b1ce2`** (ajustes de interface após a gravação Android). O commit seguinte só atualiza este relatório e o `docs/IHC-V3-ajustes.md` |
+| Escopo | Interface mobile, usabilidade, comunicabilidade e acessibilidade. O Modo de Simulação é um recurso para testar a interface; não valida o robô físico |
 
 ### Como ler as verificações
 
 | Rótulo | Significado |
 | --- | --- |
-| **Lógica** | Testes automatizados executados (`npm test`, 15 testes) sobre o simulador e a validação. |
-| **Web** | Roteiro automatizado executado no **build web de produção** (`expo export`), em Chrome headless, viewport 390×844, Modo de Simulação. Scripts em `scripts/verificacao-web/` e logs em `docs/evidencias/`. |
+| **Lógica** | Testes automatizados executados (`npm test`, 21 testes) sobre o simulador, a validação e a descrição da parada de emergência. |
+| **Web** | Roteiro com **asserções** (`scripts/verificacao-web/verify.mjs`) executado no **build web de produção**, em Chrome headless, viewport 390×844 (e 320×640 onde indicado), Modo de Simulação. Cada critério tem resultado esperado; uma divergência marca FALHOU e o processo termina com código 1. |
 | **Código** | Apenas análise do código-fonte, sem execução. |
 | **Pendente (Android)** | Depende do aplicativo instalado; nada foi executado em Android nesta etapa. |
 
-Nada aqui é reteste com participantes nem validação do robô físico. A execução web confirma o comportamento da interface e da simulação; não confirma BLE, TalkBack, teclado ou barras nativas do Android.
+Nada aqui é reteste com participantes nem validação do robô físico. A execução web não comprova teclado virtual, TalkBack, fontes ampliadas nem as barras de navegação do Android.
 
 ---
+
+## A. Ajustes desta versão (`56b1ce2`)
+
+| # | Problema | Alteração | Arquivos | Verificação e resultado | Pendência no APK |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Opções de água simulada sem indicação de seleção | Chips “Água baixa (8%)” e “Reabastecer (75%)” como grupo de rádio (`radiogroup`/`radio`), com fundo vermelho, texto branco e marca de seleção. O destaque vem da telemetria confirmada (`telemetry.water`), não do último toque. Linha “Nível atual na simulação: N%”. Em falha, a seleção não muda e a falha aparece abaixo; o sucesso é anunciado ao leitor de tela | `app/(tabs)/settings.tsx` | **Web** W0–W4: no início, só 75% selecionado; 8% passa a ser a única opção selecionada e o Monitor mostra 8%; 75% volta e o Monitor mostra 75%; com falha injetada, 75% continua selecionado e aparece “Água simulada em 8%: falhou” | Anúncio e estado “selecionado” no TalkBack |
+| 2 | Faixas grandes de estado ocupavam espaço em todas as telas | Indicador compacto no cabeçalho, abaixo do título: ícone + texto curto (“Simulação · conectado”, “Simulação · conectando…”, “Simulação · desconectado”, “BLE · conectado/conectando…/desconectado”), com cores próprias e texto. A descrição acessível traz a explicação completa (“Os dados são gerados pelo aplicativo, sem controlar um robô físico.”), repetida em Configurações e na aba Conexão. O aviso local “Leituras SIMULADAS · geradas pelo app” do Monitor foi mantido | `components/HeaderTitle.tsx` (novo), `app/(tabs)/_layout.tsx`, `app/(tabs)/*.tsx`; removido `components/ModeBanner.tsx` | **Web** P-*: indicador correto nas quatro abas; descrição acessível completa; título e indicador sem truncamento e sem sobrepor “Reiniciar” nas quatro abas (390 px) e em Ajustes a 320 px; faixa antiga ausente; após Desconectar, “Simulação · desconectado” | Leitura no TalkBack; fontes ampliadas no cabeçalho; estados BLE (só Código) |
+| 3 | Resultado da emergência pouco perceptível (caixa pequena) | Modal central único (`EmergencyModal`, montado uma vez no layout das abas). O toque chama `emergencyStop` sem confirmação prévia; o modal abre com “Executando parada de emergência…” e é atualizado com o resultado. Textos: simulação → “Parada de emergência aplicada na simulação” com “Movimento parado”, “Bomba desligada”, “Modo manual”; BLE → “Comandos de parada enviados”, só com estados que a telemetria posterior informar; falha parcial/total destacada, com resultado por ação e “Tentar novamente”. Fica aberto até “Fechar”/Voltar; Voltar é ignorado enquanto a parada está em andamento. Toques repetidos durante o envio reaproveitam a mesma operação, e só o acionamento mais recente atualiza o modal. Foco no título ao abrir e de volta ao botão de origem ao fechar. Conteúdo rolável e botões de 56 dp | `services/emergency.ts` (novo), `components/EmergencyModal.tsx` (novo), `components/EmergencyStopBar.tsx`, `context/BluetoothContext.tsx` | **Lógica** (6 testes): ordem dos comandos, textos de sucesso na simulação, envio BLE sem afirmar parada, estados informados só pela telemetria posterior, falha parcial e total. **Web** EM1–EM13: movimento e bomba ativos → modal com os três estados e estado real parado/desligada/manual; modal aberto após 2 s; Fechar devolve o foco ao botão e nada é retomado em 2 s; a partir de AUTO no Monitor, um único modal e modo Manual, com o fogo mantido; Esc (equivalente web do Voltar) fecha e devolve o foco; dois toques rápidos geram uma só apresentação; falha parcial com “Tentar novamente”, que atualiza o mesmo modal para sucesso; falha total; sem conexão | Botão Voltar físico; foco do TalkBack; fontes ampliadas no modal; caminho BLE. Na simulação os três comandos terminam no mesmo ciclo, então o estado “Executando…” não chega a aparecer na web (só Código) |
+| 4 | Teclado encobria senha e “Entrar” no Login (00:05–00:11) | **Causa provável (Código):** `edgeToEdgeEnabled: true` no Android impede o redimensionamento da janela, e o `KeyboardAvoidingView` usava `behavior={undefined}` no Android, sem rolagem. Agora: `behavior="padding"`, `ScrollView` com `keyboardShouldPersistTaps="handled"`, e “próximo” no teclado (e-mail → senha → enviar). Cadastro recebeu o mesmo tratamento, por prevenção; nenhum problema foi observado nele | `app/login.tsx`, `app/register.tsx` | **Web** K1/K3: com altura útil de 400 px (proxy do teclado), o `ScrollView` do app rola e “Entrar”/“Cadastrar” ficam alcançáveis. Na versão anterior esses checks falham. K2: Enter na senha envia o login. M1: retorno do foco do modal de erro preservado | **Teclado real no Android** |
+| 5 | “Configurações” truncado na aba | Rótulo da aba “Ajustes”; título da tela continua “Configurações”; nome acessível “Ajustes, tela de Configurações” | `app/(tabs)/_layout.tsx` | **Web** TAB: quatro rótulos inteiros, dentro da tela; TAB-a11y: nome acessível e título corretos | Barra de gestos e de 3 botões |
+| 6 | Título dos sensores quebrava ao dividir a linha com o selo (00:49) | Título em linha própria; selo “Calibração simulada” em linha separada, abaixo | `app/(tabs)/monitor.tsx` | **Web** S1 (390 px) e S2 (320 px): nenhuma palavra partida e selo abaixo do título. Na versão anterior, S1 falha (selo ao lado) | Fontes ampliadas; quebra de texto nativa |
+| 7 | Primeiro toque em Aplicar com teclado aberto não aplicava (01:45–01:47) | **Causa confirmada no código:** o `ScrollView` de Configurações não definia `keyboardShouldPersistTaps`; o padrão (`"never"`) faz o primeiro toque fora do campo só fechar o teclado. Agora `"handled"` em Configurações, Controle, Monitor, Login e Cadastro; Aplicar fecha o teclado só para valor válido e mantém o foco no campo em caso de erro | `app/(tabs)/settings.tsx`, `control.tsx`, `monitor.tsx`, `components/ParamField.tsx` | **Web** AP1: com o campo em foco, digitar 40 e um clique em Aplicar → “aplicado na simulação” e “Em vigor: 40”. AP2: 250 → erro, nenhum comando, foco no campo. AP3: vazio e relação inválida com as mensagens anteriores. AP4: apagar tudo continua possível. AP5: o Monitor segue em “detecção ≥ 40” depois dos erros. A web não tem teclado virtual: a causa não foi reproduzida em execução | **Primeiro toque com teclado aberto no Android** |
+| 8 | “aplicado na simulação” continuava visível após voltar para BLE (02:08) | O contexto expõe `sessionId`, que muda sempre que a sessão é encerrada (troca de modo, desconexão, perda de conexão). Os feedbacks de comando são limpos, e respostas pendentes da sessão anterior são descartadas. Os sliders voltam ao valor informado pelo dispositivo ou ao padrão do app, sinalizado como “Sem leitura do dispositivo: o valor mostrado é o padrão do app”, e os campos descartam edição e erros antigos | `context/BluetoothContext.tsx`, `hooks/useCommandFeedback.ts`, `components/SliderSetting.tsx`, `components/ParamField.tsx` | **Web** SS1/SS2: velocidade “aplicado na simulação” some ao encerrar a sessão (Desconectar), e aparece o aviso de valor padrão. A troca para BLE não existe na web; ela usa o mesmo mecanismo (`teardown` → `sessionId`), verificado só por Código | **Voltar para BLE no APK** |
+| — | Achado durante a verificação: o react-native-web ignora `accessibilityState` | Props `aria-checked`/`aria-busy`/`aria-disabled` adicionadas junto de `accessibilityState` nos rádios, switches e botões com estado (no Android, o RN 0.81 aceita as duas formas) | `settings.tsx`, `control.tsx`, `index.tsx`, `EmergencyStopBar.tsx` | **Web**: `aria-checked` presente nos rádios de água (W0–W4) | TalkBack |
+
+### Verificações executadas
+
+| Comando | Resultado |
+| --- | --- |
+| `npx tsc --noEmit` | Saída 0, sem erros |
+| `npm run lint` | Saída 0, sem erros nem avisos |
+| `npm test` | 21 testes, 21 aprovados (6 novos sobre a emergência) |
+| `npm run build:web` | Saída 0 |
+| `node scripts/verificacao-web/verify.mjs docs/evidencias/verificacao http://localhost:8090` | **57 critérios, 57 aprovados**, console sem erros (`docs/evidencias/verificacao/verificacao-web.json` e `saida-verificacao.txt`) |
+| Controle negativo: mesmo roteiro contra o build de `f103d1a` | 34 falhas antes da interrupção (indicador, aba “Ajustes”, água, modal de emergência, selo dos sensores, rolagem do login e do cadastro), como esperado; os checks de preservação (I5, M1, I3, T1, K2…) passaram nas duas versões (`controle-negativo-f103d1a.txt`) |
+| Android | **Não executado** |
+
+As dependências não mudaram desde `f103d1a` (SDK 54; `expo-doctor` 18/18 naquela versão).
+
+### Critérios do roteiro web (57)
+
+- **Preservação:** I5 (rota protegida → login), M1 (foco do erro de login), I3 (Monitor com leituras logo após o login), T1/T2/T4 (temporizadores 1 → 0, máximo 1 em 5 ciclos), E5, E1 (fogo cancelado não volta em 5 ciclos), E2/AP4 (apagar valor), I1 (“Configurar sensores” → `/settings`), I2/I6 (Sobre com modal claro), M2/M4 (foco volta a Sobre e Reiniciar), I4 (texto de Conexão sem corte), E4 (sem emojis), console sem erros.
+- **Ajustes desta versão:** K1–K3, P-Conexão/Controle/Monitor/Ajustes, P-desc, P-layout, P-faixa, P-320, P-desc2, TAB, TAB-a11y, W0–W4, AP1–AP5, S1–S2, EM1–EM13, SS1–SS2.
+
+### Análise de código, sem execução
+
+- Estado “Executando parada de emergência…” e envio BLE concorrente: `emergencyStop` define o estado `running` antes do primeiro comando; com BLE, a escrita é assíncrona e o estado fica visível. Na simulação, o resultado chega no mesmo ciclo.
+- Voltar do Android durante a parada: `onRequestClose` só fecha quando `phase === "done"`.
+- Troca para BLE e respostas pendentes: `invalidateSession` incrementa `sessionId`, e `useCommandFeedback` descarta atualizações de execuções anteriores (`runIdRef`).
+- Teclado: `behavior="padding"` e `keyboardShouldPersistTaps="handled"` não foram exercitados com teclado virtual.
+
+### Capturas executadas (`docs/evidencias/verificacao/`)
+
+`01-login`, `02-login-altura-reduzida`, `03`–`06` indicador nas quatro abas, `07-barra-de-abas-ajustes`, `08-agua-8-selecionada`, `09-monitor-agua-8`, `10-agua-falha-selecao-mantida`, `11-aplicar-40-primeiro-toque`, `12-monitor-sensores-titulo`, `13-monitor-sensores-320px`, `14-indicador-320px`, `15-emergencia-simulacao-modal`, `16-emergencia-monitor-auto`, `17-emergencia-falha-parcial`, `18-emergencia-falha-total`, `19-ajustes-apos-desconectar`, `20-emergencia-sem-conexao`, `21-conexao-desconectado`. A sequência está em `docs/evidencias/roteiro-verificacao-web.gif` (capturas, não gravação de vídeo).
+
+### Roteiro de reteste no novo APK
+
+Gere o APK com `eas build --platform android --profile preview` a partir de `ihc-v3-ajustes` atualizada. No aparelho:
+
+1. **Login com teclado:** toque em E-mail, use “próximo” até Senha; com o teclado aberto, os campos e “Entrar” devem continuar visíveis ou alcançáveis por rolagem; entre. Repita no Cadastro.
+2. **Cabeçalho:** nas quatro abas, confira “Simulação · conectado” sob o título, sem cortes nem sobreposição com “Reiniciar”; repita com fonte do sistema no máximo.
+3. **Abas:** “Conexão, Controle, Monitor, Ajustes” inteiras e acima da barra do Android, com navegação por gestos e por 3 botões.
+4. **Água:** em Ajustes, toque em “Água baixa (8%)”: só ela selecionada; o Monitor mostra 8%. Volte para 75%. Com “Falha de envio simulada: Todos os comandos”, a seleção não deve mudar.
+5. **Aplicar com teclado aberto:** digite 40 no Limiar e toque **uma vez** em Aplicar sem fechar o teclado → sucesso e “Em vigor: 40”. Teste 250 e campo vazio.
+6. **Sensores:** no Monitor, título e “Calibração simulada” em linhas separadas, com fonte normal e ampliada.
+7. **Emergência:** com movimento (segure uma seta) e bomba ligada, toque na parada → modal grande com os três estados; aguarde, feche e confirme que nada foi retomado. Repita no Monitor a partir de AUTO. Teste o botão Voltar com o resultado aberto. Teste falha parcial (“Comandos da bomba”) com “Tentar novamente”, falha total e sem conexão.
+8. **Troca de modo:** aplique a velocidade na simulação e mude para BLE (desconectado): nenhuma mensagem “aplicado na simulação” deve continuar visível.
+9. **TalkBack:** indicador do cabeçalho (descrição completa), rádios de água (estado selecionado), modal de emergência (foco no título ao abrir, de volta ao botão ao fechar), anúncios de resultado e direcionais por toque duplo.
+10. **Regressão:** I1–I6 e E1–E5.
+
+---
+
+# Histórico — versão verificada anteriormente (`f103d1a`)
+
+> As seções abaixo descrevem a versão anterior e continuam válidas onde não foram alteradas pela seção A. As capturas e logs citados (`docs/evidencias/web/`, `docs/evidencias/regressao/`, `roteiro-simulacao-web.gif`) foram substituídos por `docs/evidencias/verificacao/` e estão disponíveis no commit `e34fe74`. Os roteiros `flow.mjs` e `regress.mjs` foram incorporados ao `verify.mjs`. A faixa “MODO DE SIMULAÇÃO” citada abaixo foi substituída pelo indicador compacto, a aba “Configurações” passou a se chamar “Ajustes”, e o painel de resultado da emergência virou o modal da seção A.
 
 ## 0. Mudanças desta revisão (após `3cfd647`)
 
@@ -218,8 +283,8 @@ Sirva o `dist/` com fallback de SPA, usando o servidor incluído nos scripts:
 node scripts/verificacao-web/serve.mjs dist 8090
 ```
 
-Com o servidor rodando, em outro terminal, execute a regressão. Ela usa o Chrome; outro caminho pode ser informado em `CHROME_PATH`:
+Com o servidor rodando, em outro terminal, execute a verificação com asserções. Ela usa o Chrome; outro caminho pode ser informado em `CHROME_PATH`:
 
 ```bash
-node scripts/verificacao-web/regress.mjs saida-regressao http://localhost:8090
+node scripts/verificacao-web/verify.mjs saida-verificacao http://localhost:8090
 ```
