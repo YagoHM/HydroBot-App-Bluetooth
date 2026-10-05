@@ -65,6 +65,21 @@
     "observed": "vazio aceito: true / redigitado: 75"
   },
   {
+    "id": "F1",
+    "desc": "Falha injetada (todos os comandos): aplicar limiar 120",
+    "observed": "Limiar de Detecção = 120: falhou. Falha de envio simulada (ativada em Configurações). |  | Intensidade de Ref :: em vigor 120? false"
+  },
+  {
+    "id": "F2",
+    "desc": "Falha injetada: trocar modo no Controle",
+    "observed": "Modo automático: falhou. Falha de envio simulada (ativada em Configurações). | Controle de Movimento :: modo exibido: Manual"
+  },
+  {
+    "id": "F3",
+    "desc": "Falha injetada: ligar bomba",
+    "observed": "Ligar bomba: falhou. Falha de envio simulada (ativada em Configurações). | Ações Rápidas |  | Confi :: Bomba de Água |  | Desligada |  | Liga"
+  },
+  {
     "id": "E3",
     "desc": "Rótulos das abas dentro da viewport (web; insets do Android não se aplicam)",
     "observed": "Conexão: base 832, altura 16, scroll 16 | Controle: base 832, altura 16, scroll 16 | Monitor: base 832, altura 16, scroll 16 | Configurações: base 832, altura 16, scroll 16 | viewport 844"
