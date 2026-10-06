@@ -1,6 +1,15 @@
-import { Ionicons } from '@expo/vector-icons';
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '../../components/Icon';
+import {
+  ActivityIndicator,
+  FlatList,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useBluetooth, type DeviceInfo } from '../../context/BluetoothContext';
+import { DISCOVERY_LABEL } from '../../services/hydroBotProtocol';
 
 export default function HomeScreen() {
   const {
@@ -24,7 +33,7 @@ export default function HomeScreen() {
       disabled={connecting}
       accessibilityRole="button"
       accessibilityState={{ disabled: connecting }}
-      accessibilityLabel={`Conectar a ${item.name || 'dispositivo desconhecido'}${item.simulated ? ', dispositivo simulado' : ''}`}
+      accessibilityLabel={`Conectar a ${item.name || 'dispositivo desconhecido'}${item.simulated ? ', dispositivo simulado' : `. ${DISCOVERY_LABEL[item.match ?? 'unknown']}`}`}
     >
       <View style={styles.deviceInfo}>
         <Ionicons name={item.simulated ? 'flask' : 'bluetooth'} size={32} color="#DC2626" />
@@ -33,6 +42,9 @@ export default function HomeScreen() {
           <Text style={styles.deviceId}>
             {item.simulated ? 'Dispositivo simulado — sem robô físico' : `BLE · ${item.id}`}
           </Text>
+          {!item.simulated && (
+            <Text style={styles.deviceMatch}>{DISCOVERY_LABEL[item.match ?? 'unknown']}</Text>
+          )}
         </View>
       </View>
       <Ionicons name="chevron-forward" size={24} color="#6B7280" />
@@ -43,7 +55,11 @@ export default function HomeScreen() {
     const simulated = device?.simulated ?? isMockMode;
     return (
       <View style={styles.container}>
-        <View style={styles.connectedContainer}>
+        {/* Rola quando o cartão não cabe (fonte ampliada); centraliza quando cabe. */}
+        <ScrollView
+          contentContainerStyle={styles.connectedContainer}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.connectedCard}>
             <Ionicons
               name={simulated ? 'flask' : 'checkmark-circle'}
@@ -72,7 +88,7 @@ export default function HomeScreen() {
               <Text style={styles.disconnectText}>Desconectar</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView>
       </View>
     );
   }
@@ -199,6 +215,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#4B5563',
   },
+  deviceMatch: {
+    fontSize: 12,
+    color: '#374151',
+    fontWeight: '600',
+    marginTop: 2,
+  },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -234,7 +256,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   connectedContainer: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -278,6 +300,8 @@ const styles = StyleSheet.create({
   disconnectButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    maxWidth: '100%',
     backgroundColor: '#DC2626',
     paddingHorizontal: 32,
     minHeight: 48,
@@ -285,6 +309,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   disconnectText: {
+    flexShrink: 1,
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',

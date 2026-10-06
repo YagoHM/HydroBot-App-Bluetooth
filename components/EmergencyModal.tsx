@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from './Icon';
 import { useEffect, useRef } from 'react';
 import {
   AccessibilityInfo,

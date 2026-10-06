@@ -1,13 +1,14 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '../../components/Icon';
 import { Tabs } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Text, TouchableOpacity } from 'react-native';
+import { Text, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppModal from '../../components/AppModal';
 import EmergencyModal from '../../components/EmergencyModal';
 import HeaderTitle from '../../components/HeaderTitle';
 import NoticeHost from '../../components/NoticeHost';
 import { useBluetooth } from '../../context/BluetoothContext';
+import { tabBarHeight } from '../../utils/layoutMetrics';
 
 function RestartButton() {
   const { restartApp } = useBluetooth();
@@ -52,8 +53,29 @@ function RestartButton() {
   );
 }
 
+/**
+ * Rótulo da aba em uma linha: com fonte ampliada o texto é reduzido só o
+ * necessário para caber inteiro na largura da aba, em vez de virar "Conex…" (M2).
+ */
+function TabLabel({ color, children }: { color: string; children: string }) {
+  return (
+    <Text
+      numberOfLines={1}
+      adjustsFontSizeToFit
+      minimumFontScale={0.5}
+      // minHeight/flexShrink: impede que a aba comprima o rótulo e corte letras como "ç" e "g"
+      style={{ color, fontSize: 12, lineHeight: 16, minHeight: 16, flexShrink: 0, fontWeight: '600', textAlign: 'center' }}
+    >
+      {children}
+    </Text>
+  );
+}
+
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  // fontScale muda quando o usuário altera a fonte do sistema com o app aberto:
+  // a barra é recalculada e renderizada de novo (C3/M2).
+  const { fontScale } = useWindowDimensions();
 
   return (
     <>
@@ -77,18 +99,11 @@ export default function TabLayout() {
             borderTopWidth: 1,
             borderTopColor: '#E5E7EB',
             // Altura suficiente para ícone + rótulo sem corte; insets evitam a barra do sistema
-            height: 68 + insets.bottom,
+            height: tabBarHeight(fontScale, insets.bottom),
             paddingBottom: 10 + insets.bottom,
             paddingTop: 6,
           },
-          tabBarLabelStyle: {
-            fontSize: 12,
-            lineHeight: 16,
-            // Evita que o rótulo seja comprimido e corte letras como "ç" e "g"
-            minHeight: 16,
-            flexShrink: 0,
-            fontWeight: '600',
-          },
+          tabBarLabel: ({ color, children }) => <TabLabel color={color}>{children}</TabLabel>,
           headerRight: () => <RestartButton />,
         }}
       >
@@ -124,7 +139,7 @@ export default function TabLayout() {
           options={{
             title: 'Configurações',
             // "Configurações" não cabia na aba e aparecia com reticências
-            tabBarLabel: 'Ajustes',
+            tabBarLabel: ({ color }) => <TabLabel color={color}>Ajustes</TabLabel>,
             tabBarAccessibilityLabel: 'Ajustes, tela de Configurações',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="settings" size={size} color={color} />

@@ -53,6 +53,8 @@ export async function launch({ port = 9333, profile, width = 390, height = 844 }
   await send('Page.enable');
   await send('Runtime.enable');
   await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 2, mobile: true });
+  // Sem foco de janela o headless não dispara eventos focus/blur; a emulação os habilita.
+  await send('Emulation.setFocusEmulationEnabled', { enabled: true });
   await send('Page.addScriptToEvaluateOnNewDocument', { source: HELPERS });
   const console_ = [];
   listeners.push((m) => {

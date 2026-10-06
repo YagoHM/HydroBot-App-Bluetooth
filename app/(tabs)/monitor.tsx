@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '../../components/Icon';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import EmergencyStopBar from '../../components/EmergencyStopBar';
@@ -614,12 +614,19 @@ const styles = StyleSheet.create({
   },
   sensorsContainer: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     gap: 8,
     marginBottom: 12,
   },
+  // Largura pelo conteúdo: três colunas quando cabem; com fonte ampliada os
+  // cartões passam para a linha seguinte em vez de partir as palavras (M4).
   sensorCard: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 0,
+    flexBasis: 'auto',
+    minWidth: '30%',
+    maxWidth: '100%',
     backgroundColor: '#F9FAFB',
     padding: 10,
     borderRadius: 8,
@@ -703,8 +710,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   infoItem: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 0,
+    flexBasis: 'auto',
     minWidth: '45%',
+    maxWidth: '100%',
     backgroundColor: '#F9FAFB',
     padding: 12,
     borderRadius: 8,

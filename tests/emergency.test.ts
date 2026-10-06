@@ -58,6 +58,21 @@ test('falha parcial destaca a ação que falhou e oferece nova tentativa', () =>
   assert.equal(d.canRetry, true);
 });
 
+test('falha total com a mesma causa: causa mostrada uma vez, sem afirmar sucesso', () => {
+  const d = describeEmergency(report('sim', EMERGENCY_STEPS.map((s) => fail(s.command, 'Não conectado ao dispositivo simulado.'))));
+  assert.equal(d.lines.length, 2);
+  assert.equal(d.lines[0].text, 'Nenhum comando de parada foi enviado: Não conectado ao dispositivo simulado.');
+  assert.equal(d.lines[1].text, 'Não enviados: parar movimento, desligar bomba, sair do modo automático.');
+  assert.ok(d.lines.every((l) => l.kind === 'fail'));
+  assert.equal(d.canRetry, true);
+});
+
+test('falha total com causas diferentes mantém o resultado por ação', () => {
+  const d = describeEmergency(report('ble', [fail('STOP', 'a'), fail('PUMP_OFF', 'b'), fail('MODE_MANUAL', 'a')]));
+  assert.equal(d.lines.length, 3);
+  assert.match(d.lines[1].text, /Desligar bomba: falhou — b/);
+});
+
 test('falha total (ex.: sem conexão)', () => {
   const sim = describeEmergency(report('sim', EMERGENCY_STEPS.map((s) => fail(s.command, 'Não conectado'))));
   assert.equal(sim.tone, 'failed');

@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from './Icon';
 import { StyleSheet, Text, View } from 'react-native';
 import { useBluetooth, type ConnectionState } from '../context/BluetoothContext';
 

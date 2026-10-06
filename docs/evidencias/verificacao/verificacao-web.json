@@ -1,7 +1,7 @@
 {
   "base": "http://localhost:8090",
   "viewport": "390x844",
-  "total": 57,
+  "total": 66,
   "falhas": 0,
   "console": [],
   "results": [
@@ -399,10 +399,11 @@
     {
       "id": "EM12",
       "desc": "Falha total (todos os comandos)",
-      "expected": "{\"titulo\":1,\"falhas\":3,\"retry\":1}",
+      "expected": "{\"titulo\":1,\"causaUmaVez\":1,\"naoEnviados\":1,\"retry\":1}",
       "observed": {
         "titulo": 1,
-        "falhas": 3,
+        "causaUmaVez": 1,
+        "naoEnviados": 1,
         "retry": 1
       },
       "result": "APROVADO"
@@ -440,11 +441,13 @@
     },
     {
       "id": "EM13",
-      "desc": "Emergência sem conexão: falha total informada",
-      "expected": "{\"titulo\":1,\"semConexao\":3}",
+      "desc": "Emergência sem conexão: causa dita uma vez, ações não enviadas, sem sucesso",
+      "expected": "{\"titulo\":1,\"causa\":1,\"repeticoes\":1,\"sucesso\":0}",
       "observed": {
         "titulo": 1,
-        "semConexao": 3
+        "causa": 1,
+        "repeticoes": 1,
+        "sucesso": 0
       },
       "result": "APROVADO"
     },
@@ -456,6 +459,90 @@
         1,
         0
       ],
+      "result": "APROVADO"
+    },
+    {
+      "id": "M3",
+      "desc": "Ícones (glifos) sem aria-hidden em todas as abas",
+      "expected": "{\"haIcones\":true,\"expostos\":0}",
+      "observed": {
+        "haIcones": true,
+        "expostos": 0
+      },
+      "result": "APROVADO"
+    },
+    {
+      "id": "C1a",
+      "desc": "Foco em \"Intensidade de Perigo\" (sem rolagem do navegador) traz o cartão inteiro para a área visível",
+      "expected": "{\"antesVisivel\":false,\"depoisVisivel\":true}",
+      "observed": {
+        "antesVisivel": false,
+        "depoisVisivel": true
+      },
+      "result": "APROVADO"
+    },
+    {
+      "id": "C1b",
+      "desc": "Valor inválido + Aplicar: mensagem de erro e Aplicar visíveis",
+      "expected": "{\"erro\":true,\"aplicar\":true,\"cartao\":true}",
+      "observed": {
+        "erro": true,
+        "aplicar": true,
+        "cartao": true
+      },
+      "result": "APROVADO"
+    },
+    {
+      "id": "C1c",
+      "desc": "Sem teclado não há espaço extra no fim da rolagem",
+      "expected": "\"0px\"",
+      "observed": "0px",
+      "result": "APROVADO"
+    },
+    {
+      "id": "C2a",
+      "desc": "Área reduzida: cartão rola; Desconectar inteiro acima das abas e título abaixo do cabeçalho",
+      "expected": "{\"rola\":true,\"desconectarInteiro\":true,\"tituloVisivel\":true}",
+      "observed": {
+        "rola": true,
+        "desconectarInteiro": true,
+        "tituloVisivel": true
+      },
+      "result": "APROVADO"
+    },
+    {
+      "id": "M1",
+      "desc": "Fonte ×1,8: ícone e texto da emergência inteiros dentro do botão",
+      "expected": "{\"icone\":true,\"texto\":true,\"textoSemCorteHorizontal\":true}",
+      "observed": {
+        "icone": true,
+        "texto": true,
+        "textoSemCorteHorizontal": true
+      },
+      "result": "APROVADO"
+    },
+    {
+      "id": "M4",
+      "desc": "Fonte ×1,8: Status do Sistema e sensores sem palavras partidas",
+      "expected": "{\"encontrados\":7,\"partidas\":0}",
+      "observed": {
+        "encontrados": 7,
+        "partidas": 0
+      },
+      "result": "APROVADO"
+    },
+    {
+      "id": "M4b",
+      "desc": "Fonte ×1,8: valores numéricos completos",
+      "expected": "true",
+      "observed": true,
+      "result": "APROVADO"
+    },
+    {
+      "id": "C2b",
+      "desc": "Fonte ×1,8: Desconectar alcançável e inteiro acima das abas",
+      "expected": "true",
+      "observed": true,
       "result": "APROVADO"
     },
     {

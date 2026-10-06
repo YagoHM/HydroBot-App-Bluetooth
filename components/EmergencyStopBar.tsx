@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from './Icon';
 import { useRef } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useBluetooth } from '../context/BluetoothContext';
@@ -30,7 +30,8 @@ export default function EmergencyStopBar() {
         accessibilityState={{ busy: running }}
         aria-busy={running}
       >
-        <Ionicons name="alert-circle" size={26} color="#fff" />
+        {/* Ícone com espaço reservado; o texto usa só a largura restante e quebra em linhas (M1). */}
+        <Ionicons name="alert-circle" size={26} color="#fff" style={styles.icon} />
         <Text style={styles.buttonText}>
           {running ? 'ENVIANDO PARADA…' : 'PARADA DE EMERGÊNCIA'}
         </Text>
@@ -54,11 +55,18 @@ const styles = StyleSheet.create({
     gap: 10,
     backgroundColor: '#991B1B',
     minHeight: 56,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 3,
     borderColor: '#450A0A',
   },
+  icon: {
+    flexShrink: 0,
+  },
   buttonText: {
+    flexShrink: 1,
+    textAlign: 'center',
     color: '#fff',
     fontSize: 17,
     fontWeight: '800',

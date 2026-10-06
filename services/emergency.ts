@@ -95,10 +95,21 @@ export function describeEmergency(
   const lines = report.steps.map(lineFor);
 
   if (failures === report.steps.length) {
+    // Mesma causa em todas as ações (ex.: sem conexão): mostra a causa uma vez.
+    const errors = report.steps.map((s) => (s.outcome.ok ? '' : s.outcome.error));
+    const commonCause = errors.every((e) => e === errors[0]) ? errors[0] : null;
     return {
       tone: 'failed',
       title: sim ? 'Parada de emergência não aplicada' : 'Comandos de parada não enviados',
-      lines,
+      lines: commonCause
+        ? [
+            { kind: 'fail', text: `Nenhum comando de parada foi enviado: ${commonCause}` },
+            {
+              kind: 'fail',
+              text: `Não enviados: ${report.steps.map((s) => s.label.toLowerCase()).join(', ')}.`,
+            },
+          ]
+        : lines,
       note: 'Nenhum comando de parada foi aplicado. Verifique a conexão e tente novamente; se o robô estiver ativo, desligue a alimentação dele.',
       canRetry: true,
       announcement: 'Falha: a parada de emergência não foi aplicada',

@@ -1,4 +1,4 @@
-  import { Ionicons } from '@expo/vector-icons';
+  import { Ionicons } from '../components/Icon';
   import { Stack } from 'expo-router';
   import { StatusBar } from 'expo-status-bar';
   import { ActivityIndicator, Alert, TouchableOpacity, View } from 'react-native';

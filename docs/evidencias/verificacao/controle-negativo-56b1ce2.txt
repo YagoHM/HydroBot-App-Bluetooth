@@ -40,18 +40,18 @@ OK    EM8 | Dois toques rápidos geram uma única apresentação | 1
 OK    EM9 | Falha parcial (bomba): destaque, resultado por ação e "Tentar novamente" | {"titulo":1,"movimento":1,"bomba":true,"modo":1,"retry":1}
 OK    EM10 | Bomba continua ligada após a falha (sem sucesso falso) | true
 OK    EM11 | Remover a falha e "Tentar novamente" atualiza o mesmo modal para sucesso | {"sucesso":1,"parcial":0,"modais":1}
-OK    EM12 | Falha total (todos os comandos) | {"titulo":1,"causaUmaVez":1,"naoEnviados":1,"retry":1}
+FALHA EM12 | Falha total (todos os comandos) | {"titulo":1,"causaUmaVez":0,"naoEnviados":0,"retry":1}
 OK    SS1 | Antes: velocidade aplicada na simulação aparece em Ajustes | true
 OK    SS2 | Após encerrar a sessão (Desconectar): nenhuma mensagem "aplicado na simulação" | [false,true]
 OK    T2 | Intervalos de 600 ms após Desconectar | 0
 OK    P-desc2 | Indicador após desconectar | "Simulação · desconectado"
-OK    EM13 | Emergência sem conexão: causa dita uma vez, ações não enviadas, sem sucesso | {"titulo":1,"causa":1,"repeticoes":1,"sucesso":0}
+FALHA EM13 | Emergência sem conexão: causa dita uma vez, ações não enviadas, sem sucesso | {"titulo":1,"causa":0,"repeticoes":3,"sucesso":0}
 OK    T4 | 5 ciclos de conectar/desconectar: no máximo 1 intervalo ativo | [1,0]
-OK    M3 | Ícones (glifos) sem aria-hidden em todas as abas | {"haIcones":true,"expostos":0}
-OK    C1a | Foco em "Intensidade de Perigo" (sem rolagem do navegador) traz o cartão inteiro para a área visível | {"antesVisivel":false,"depoisVisivel":true}
-OK    C1b | Valor inválido + Aplicar: mensagem de erro e Aplicar visíveis | {"erro":true,"aplicar":true,"cartao":true}
-OK    C1c | Sem teclado não há espaço extra no fim da rolagem | "0px"
-OK    C2a | Área reduzida: cartão rola; Desconectar inteiro acima das abas e título abaixo do cabeçalho | {"rola":true,"desconectarInteiro":true,"tituloVisivel":true}
+FALHA M3 | Ícones (glifos) sem aria-hidden em todas as abas | {"haIcones":true,"expostos":30}
+FALHA C1a | Foco em "Intensidade de Perigo" (sem rolagem do navegador) traz o cartão inteiro para a área visível | {"antesVisivel":false,"depoisVisivel":false}
+FALHA C1b | Valor inválido + Aplicar: mensagem de erro e Aplicar visíveis | {"erro":false,"aplicar":false,"cartao":false}
+FALHA C1c | Sem teclado não há espaço extra no fim da rolagem | "16px"
+FALHA C2a | Área reduzida: cartão rola; Desconectar inteiro acima das abas e título abaixo do cabeçalho | {"rola":false}
 OK    M1 | Fonte ×1,8: ícone e texto da emergência inteiros dentro do botão | {"icone":true,"texto":true,"textoSemCorteHorizontal":true}
 OK    M4 | Fonte ×1,8: Status do Sistema e sensores sem palavras partidas | {"encontrados":7,"partidas":0}
 OK    M4b | Fonte ×1,8: valores numéricos completos | true
@@ -65,4 +65,4 @@ OK    I4 | Texto explicativo de Conexão sem corte | true
 OK    E4 | Sem emojis no texto visível | ""
 OK    CON | Console sem erros nem avisos | 0
 
-TOTAL 66 | APROVADOS 66 | FALHAS 0
+TOTAL 66 | APROVADOS 59 | FALHAS 7

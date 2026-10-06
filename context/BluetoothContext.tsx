@@ -13,6 +13,7 @@ import { AccessibilityInfo } from "react-native";
 import * as ble from "../services/bleTransport";
 import {
   parseHydroBotMessage,
+  type DiscoveryMatch,
   type HydroBotTelemetry,
 } from "../services/hydroBotProtocol";
 import {
@@ -43,6 +44,8 @@ export interface DeviceInfo {
   id: string;
   name: string | null;
   simulated: boolean;
+  /** Só para dispositivos BLE encontrados na busca. */
+  match?: DiscoveryMatch;
 }
 
 export type { CommandOutcome, EmergencyReport, EmergencyStep } from "../services/emergency";
@@ -524,11 +527,14 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({
     ble.startBleScan(
       (found) => {
         if (gen !== genRef.current) return;
-        setDevices((prev) =>
-          prev.some((d) => d.id === found.id)
-            ? prev
-            : [...prev, { ...found, simulated: false }],
-        );
+        setDevices((prev) => {
+          if (prev.some((d) => d.id === found.id)) return prev;
+          // Indícios de compatibilidade primeiro; a ordem não valida o dispositivo.
+          const rank = { service: 0, name: 1, unknown: 2 } as const;
+          return [...prev, { ...found, simulated: false }].sort(
+            (a, b) => rank[a.match ?? 'unknown'] - rank[b.match ?? 'unknown'],
+          );
+        });
       },
       (message) => {
         if (gen !== genRef.current) return;

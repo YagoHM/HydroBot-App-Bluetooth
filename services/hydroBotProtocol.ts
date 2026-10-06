@@ -3,6 +3,31 @@ export const HYDROBOT_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
 export const HYDROBOT_RX_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
 export const HYDROBOT_TX_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
 
+/**
+ * O que a busca BLE permite afirmar sobre um dispositivo encontrado, usando só
+ * os identificadores já definidos acima. Nenhum caso comprova que é o HydroBot:
+ * o UUID de serviço é o padrão Nordic UART, usado também por outros aparelhos.
+ * - "service": anuncia o serviço de dados usado pelo HydroBot;
+ * - "name": o nome contém "HydroBot", mas o serviço não foi anunciado;
+ * - "unknown": nada indica compatibilidade.
+ */
+export type DiscoveryMatch = 'service' | 'name' | 'unknown';
+
+export function classifyDiscovery(
+  name: string | null | undefined,
+  serviceUUIDs: string[] | null | undefined,
+): DiscoveryMatch {
+  if (serviceUUIDs?.some((u) => u.toLowerCase() === HYDROBOT_SERVICE_UUID)) return 'service';
+  if (name && name.toLowerCase().includes(HYDROBOT_DEVICE_NAME.toLowerCase())) return 'name';
+  return 'unknown';
+}
+
+export const DISCOVERY_LABEL: Record<DiscoveryMatch, string> = {
+  service: 'Anuncia o serviço de dados usado pelo HydroBot (compatibilidade confirmada só ao conectar)',
+  name: 'Nome indica HydroBot, mas o serviço de dados não foi anunciado',
+  unknown: 'Compatibilidade com o HydroBot não verificada',
+};
+
 export type HydroBotMode = 'MANUAL' | 'AUTO';
 
 export type HydroBotCommand =

@@ -8,13 +8,17 @@ import {
   HYDROBOT_RX_UUID,
   HYDROBOT_SERVICE_UUID,
   HYDROBOT_TX_UUID,
+  classifyDiscovery,
   encodeHydroBotCommand,
+  type DiscoveryMatch,
   type HydroBotCommand,
 } from './hydroBotProtocol';
 
 export interface BleDeviceInfo {
   id: string;
   name: string | null;
+  /** O que a busca indica sobre compatibilidade (nunca "validado"). */
+  match: DiscoveryMatch;
 }
 
 export interface BleConnection {
@@ -78,7 +82,7 @@ export function startBleScan(
       return;
     }
     const name = dev?.name ?? dev?.localName ?? null;
-    if (dev && name) onDevice({ id: dev.id, name });
+    if (dev && name) onDevice({ id: dev.id, name, match: classifyDiscovery(name, dev.serviceUUIDs) });
   });
 }
 
@@ -93,6 +97,16 @@ export async function connectBle(
   const mgr = getManager();
   const device = await mgr.connectToDevice(id, { timeout: 10000, requestMTU: 512 });
   await device.discoverAllServicesAndCharacteristics();
+  // Confirma a compatibilidade com os identificadores do protocolo antes de usar o dispositivo.
+  const services = await device.services();
+  if (!services.some((s) => s.uuid.toLowerCase() === HYDROBOT_SERVICE_UUID)) {
+    try {
+      await device.cancelConnection();
+    } catch {
+      // já desconectado
+    }
+    throw new Error('o dispositivo não oferece o serviço de dados do HydroBot');
+  }
 
   let closedByApp = false;
   const subs: Subscription[] = [];

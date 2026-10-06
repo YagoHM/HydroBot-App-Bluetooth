@@ -27,6 +27,13 @@ window.__tab = (t) => { const tabs = [...document.querySelectorAll('[role="tab"]
   if (!el) throw new Error('aba não encontrada: ' + t + ' em ' + location.pathname + ' [' + tabs.map(x => JSON.stringify(x.textContent)).join(',') + ']'); el.click(); };
 window.__emergencyBtn = () => (window.__emBtn = __inActive('[aria-label="Parada de emergência"]'));
 window.__restartBtn = () => __inActive('[aria-label="Reiniciar aplicativo"]');
+// Aproximação web de fonte ampliada: multiplica o tamanho de todos os textos visíveis.
+window.__bigFont = (f) => { for (const el of document.querySelectorAll('div,span')) { if (el.children.length || !el.textContent.trim() || el.dataset.big) continue;
+  const cs = getComputedStyle(el); el.dataset.big = '1'; el.style.fontSize = (parseFloat(cs.fontSize) * f) + 'px'; if (cs.lineHeight !== 'normal') el.style.lineHeight = (parseFloat(cs.lineHeight) * f) + 'px'; } };
+window.__scroller = (el) => { let sc = el.parentElement; while (sc && sc.id !== 'root' && !(sc.scrollHeight > sc.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(sc).overflowY))) sc = sc.parentElement; return sc && sc.id !== 'root' ? sc : null; };
+window.__brokenWords = (el) => { const tn = [...el.childNodes].find(n => n.nodeType === 3); if (!tn) return 0; let broken = 0, pos = 0;
+  for (const w of tn.textContent.split(' ')) { if (w) { const r = document.createRange(); r.setStart(tn, pos); r.setEnd(tn, pos + w.length); if (new Set([...r.getClientRects()].map(x => Math.round(x.top))).size > 1) broken++; } pos += w.length + 1; } return broken; };
+window.__inside = (a, b, tol = 1) => { const r = a.getBoundingClientRect(), o = b.getBoundingClientRect(); return r.left >= o.left - tol && r.right <= o.right + tol && r.top >= o.top - tol && r.bottom <= o.bottom + tol; };
 window.__esc = () => document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Escape', bubbles: true }));
 window.__modals = () => ['Parada de emergência aplicada na simulação', 'Parada com falha parcial', 'Parada de emergência não aplicada', 'Executando parada de emergência…'].reduce((n, t) => n + __count(t), 0);
 `;
@@ -242,8 +249,8 @@ try {
   await run(`__click('Fechar'); await __sleep(400); return 1;`);
   await check('EM12', 'Falha total (todos os comandos)', `__tab('Ajustes'); await __sleep(300); __scrollTo('Falha de envio simulada'); __clickLabel('Falha simulada: Todos os comandos'); await __sleep(200);
     __tab('Controle'); await __sleep(300); __emergencyBtn().click(); await __sleep(500);
-    return { titulo: __count('Parada de emergência não aplicada'), falhas: (__vis().match(/: falhou — Falha de envio simulada/g) || []).length, retry: __label('Tentar parada de emergência novamente').length };`,
-    { titulo: 1, falhas: 3, retry: 1 });
+    return { titulo: __count('Parada de emergência não aplicada'), causaUmaVez: __count('Nenhum comando de parada foi enviado: Falha de envio simulada (ativada em Configurações).'), naoEnviados: __count('Não enviados: parar movimento, desligar bomba, sair do modo automático.'), retry: __label('Tentar parada de emergência novamente').length };`,
+    { titulo: 1, causaUmaVez: 1, naoEnviados: 1, retry: 1 });
   await shot('emergencia-falha-total');
   await run(`__click('Fechar'); await __sleep(300); __tab('Ajustes'); await __sleep(300); __scrollTo('Falha de envio simulada'); __clickLabel('Falha simulada: Nenhuma'); await __sleep(200); return 1;`);
 
@@ -255,13 +262,73 @@ try {
   await shot('ajustes-apos-desconectar');
   await check('T2', 'Intervalos de 600 ms após Desconectar', `return __simTimers.size;`, 0);
   await check('P-desc2', 'Indicador após desconectar', `return __pill();`, 'Simulação · desconectado');
-  await check('EM13', 'Emergência sem conexão: falha total informada', `__tab('Controle'); await __sleep(300); __emergencyBtn().click(); await __sleep(500);
-    return { titulo: __count('Parada de emergência não aplicada'), semConexao: (__vis().match(/Não conectado ao dispositivo simulado/g) || []).length };`,
-    { titulo: 1, semConexao: 3 });
+  await check('EM13', 'Emergência sem conexão: causa dita uma vez, ações não enviadas, sem sucesso', `__tab('Controle'); await __sleep(300); __emergencyBtn().click(); await __sleep(500);
+    return { titulo: __count('Parada de emergência não aplicada'), causa: __count('Nenhum comando de parada foi enviado: Não conectado ao dispositivo simulado. Conecte-se na aba Conexão.'), repeticoes: (__vis().match(/Não conectado ao dispositivo simulado/g) || []).length, sucesso: __count(${JSON.stringify(EMERG_SIM_OK)}) };`,
+    { titulo: 1, causa: 1, repeticoes: 1, sucesso: 0 });
   await shot('emergencia-sem-conexao');
   await run(`__click('Fechar'); await __sleep(300); return 1;`);
   await check('T4', '5 ciclos de conectar/desconectar: no máximo 1 intervalo ativo', `let max = 0; for (let k = 0; k < 5; k++) { __tab('Conexão'); await __sleep(200); __click('Buscar Dispositivos'); await __sleep(1700); __click('HydroBot simulado'); await __sleep(1000); max = Math.max(max, __simTimers.size); __click('Desconectar'); await __sleep(300); } return [max, __simTimers.size];`, [1, 0]);
   await run(`__click('Buscar Dispositivos'); await __sleep(1700); __click('HydroBot simulado'); await __sleep(1500); return 1;`);
+
+  // ── M3: ícones decorativos fora da árvore de acessibilidade ──
+  await check('M3', 'Ícones (glifos) sem aria-hidden em todas as abas', `let total = 0, expostos = 0;
+    for (const t of ['Conexão', 'Controle', 'Monitor', 'Ajustes']) { __tab(t); await __sleep(300); }
+    for (const el of document.querySelectorAll('div,span')) { if (el.children.length || !/ionicons/i.test(getComputedStyle(el).fontFamily)) continue; total++; if (!el.closest('[aria-hidden="true"]')) expostos++; }
+    return { haIcones: total > 10, expostos };`, { haIcones: true, expostos: 0 });
+
+  // ── C1: campo focado rola para cima, com título, Aplicar e erro visíveis ──
+  await check('C1a', 'Foco em "Intensidade de Perigo" (sem rolagem do navegador) traz o cartão inteiro para a área visível', `__tab('Ajustes'); await __sleep(400);
+    const input = __input('Intensidade de Perigo'); const sc = __scroller(input); sc.scrollTop = 0; await __sleep(300);
+    let card = input; while (card && !(card.textContent.includes('Intensidade de Perigo') && card.textContent.includes('Aplicar') && card.textContent.includes('Em vigor'))) card = card.parentElement;
+    const antes = __inside(card, sc); input.focus({ preventScroll: true }); await __sleep(700); window.__c1 = { input, sc, card };
+    return { antesVisivel: antes, depoisVisivel: __inside(card, sc) };`, { antesVisivel: false, depoisVisivel: true });
+  await check('C1b', 'Valor inválido + Aplicar: mensagem de erro e Aplicar visíveis', `const { input, sc, card } = window.__c1; __set('Intensidade de Perigo', '700'); input.focus({ preventScroll: true });
+    __clickLabel('Aplicar Intensidade de Perigo'); await __sleep(700); const err = __find('O valor deve estar entre 200 e 600.');
+    return { erro: !!err && __inside(err, sc), aplicar: __inside(__label('Aplicar Intensidade de Perigo')[0], sc), cartao: __inside(card, sc) };`, { erro: true, aplicar: true, cartao: true });
+  await check('C1c', 'Sem teclado não há espaço extra no fim da rolagem', `const { sc } = window.__c1; __set('Intensidade de Perigo', '350'); __blur('Intensidade de Perigo'); await __sleep(200);
+    return getComputedStyle(sc.firstElementChild).paddingBottom;`, '0px');
+  await shot('c1-campo-perigo-visivel');
+
+  // ── C2: cartão de Conexão em área reduzida ──
+  await setViewport(W, 460);
+  await sleep(500);
+  await check('C2a', 'Área reduzida: cartão rola; Desconectar inteiro acima das abas e título abaixo do cabeçalho', `__tab('Conexão'); await __sleep(500);
+    const btn = __label('Desconectar do dispositivo simulado')[0]; const sc = __scroller(btn);
+    if (!sc) return { rola: false };
+    const tabTop0 = [...document.querySelectorAll('[role="tab"]')][0].getBoundingClientRect().top; const header = sc.getBoundingClientRect().top;
+    btn.scrollIntoView({ block: 'nearest' }); await __sleep(300); const b = btn.getBoundingClientRect(); const tabTop = tabTop0;
+    sc.scrollTop = 0; await __sleep(300); const title = __find('Conectado ao dispositivo simulado'); const tt = title.getBoundingClientRect();
+    return { rola: true, desconectarInteiro: b.top >= 0 && b.bottom <= tabTop + 1, tituloVisivel: tt.top >= header - 1 };`, { rola: true, desconectarInteiro: true, tituloVisivel: true });
+  await shot('c2-conexao-area-reduzida');
+  await setViewport(W, H);
+  await sleep(400);
+
+  // ── Aproximação web de fonte ampliada (×1,8): não comprova o Android ──
+  await setViewport(360, 740);
+  await sleep(400);
+  await check('M1', 'Fonte ×1,8: ícone e texto da emergência inteiros dentro do botão', `__tab('Controle'); await __sleep(400); __bigFont(1.8); await __sleep(300);
+    const btn = __emergencyBtn(); const leaves = [...btn.querySelectorAll('div')].filter(d => !d.children.length && d.textContent.trim());
+    const icon = leaves.find(d => /ionicons/i.test(getComputedStyle(d).fontFamily)); const text = leaves.find(d => d !== icon);
+    return { icone: __inside(icon, btn), texto: __inside(text, btn), textoSemCorteHorizontal: text.scrollWidth <= text.clientWidth + 1 };`,
+    { icone: true, texto: true, textoSemCorteHorizontal: true });
+  await shot('m1-emergencia-fonte-ampliada');
+  await check('M4', 'Fonte ×1,8: Status do Sistema e sensores sem palavras partidas', `__tab('Monitor'); await __sleep(600); __bigFont(1.8); await __sleep(300);
+    const labels = ['Modo', 'Velocidade', 'PWM Mín', 'PWM Máx', 'Esquerdo', 'Centro', 'Direito'].map(t => __find(t)).filter(Boolean);
+    return { encontrados: labels.length, partidas: labels.reduce((n, el) => n + __brokenWords(el), 0) };`, { encontrados: 7, partidas: 0 });
+  await check('M4b', 'Fonte ×1,8: valores numéricos completos', `const vals = [...document.querySelectorAll('[aria-label^="Velocidade:"], [aria-label^="PWM Mín:"], [aria-label^="PWM Máx:"]')].filter(__vis1);
+    return vals.every(v => { const t = [...v.querySelectorAll('div')].filter(d => !d.children.length).pop(); return t.scrollWidth <= t.clientWidth + 1 && __brokenWords(t) === 0; });`, true);
+  await shot('m4-monitor-fonte-ampliada');
+  await check('C2b', 'Fonte ×1,8: Desconectar alcançável e inteiro acima das abas', `__tab('Conexão'); await __sleep(500); __bigFont(1.8); await __sleep(300);
+    const btn = __label('Desconectar do dispositivo simulado')[0]; btn.scrollIntoView({ block: 'nearest' }); await __sleep(300);
+    const tabTop = [...document.querySelectorAll('[role="tab"]')][0].getBoundingClientRect().top; const b = btn.getBoundingClientRect();
+    return b.top >= 0 && b.bottom <= tabTop + 1;`, true);
+  await shot('c2-conexao-fonte-ampliada');
+  await b.navigate(BASE + '/');
+  await run(`for (let i = 0; i < 120 && !document.querySelector('input') && !document.querySelector('[role="tab"]'); i++) await __sleep(500); await __sleep(800); return 1;`);
+  await setViewport(W, H);
+  await sleep(300);
+  // A navegação recarrega o app: entra de novo (dados fictícios) para a regressão final.
+  await run(`if (document.querySelector('input')) { __set('E-mail','teste@exemplo.com'); __set('Senha','senhaTeste1'); await __sleep(200); __click('Entrar'); await __sleep(1500); } return 1;`);
 
   // ── Regressão de I1, I2, I4, I6, E4 e foco dos modais ──
   await check('I1', '"Configurar sensores" navega para Configurações', `__tab('Controle'); await __sleep(300); __click('Configurar sensores'); await __sleep(600); return [location.pathname, __vis().includes('SENSORES DE FOGO (AVANÇADO)')];`, ['/settings', true]);

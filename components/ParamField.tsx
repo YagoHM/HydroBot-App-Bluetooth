@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from './Icon';
 import { useEffect, useRef, useState } from 'react';
 import { Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { announce, useBluetooth } from '../context/BluetoothContext';
@@ -25,6 +25,9 @@ interface Props {
   current: FireParams;
   editable: boolean;
   onConfirmed: (key: FireParamKey, value: number) => void;
+  /** Campo recebeu foco ou o cartão mudou de tamanho com o foco nele (C1). */
+  onFieldFocus?: (card: any) => void;
+  onFieldBlur?: (card: any) => void;
 }
 
 /**
@@ -41,12 +44,16 @@ export default function ParamField({
   current,
   editable,
   onConfirmed,
+  onFieldFocus,
+  onFieldBlur,
 }: Props) {
   const currentValue = current[paramKey];
   const [text, setText] = useState(String(currentValue));
   const [dirty, setDirty] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
   const inputRef = useRef<TextInput>(null);
+  const cardRef = useRef<View>(null);
+  const focusedRef = useRef(false);
   const fb = useCommandFeedback();
   const { min, max } = FIRE_PARAM_RANGES[paramKey];
 
@@ -96,7 +103,15 @@ export default function ParamField({
   };
 
   return (
-    <View style={styles.card}>
+    <View
+      ref={cardRef}
+      collapsable={false}
+      style={styles.card}
+      // Mensagem de erro/resultado mudou o tamanho: mantém o cartão visível acima do teclado.
+      onLayout={() => {
+        if (focusedRef.current) onFieldFocus?.(cardRef.current);
+      }}
+    >
       <View style={styles.header}>
         <Ionicons name={icon} size={24} color="#B91C1C" />
         <Text style={styles.title} nativeID={`label-${paramKey}`}>
@@ -112,7 +127,15 @@ export default function ParamField({
             setText(t);
             setDirty(true);
           }}
-          onBlur={() => setShowErrors(true)}
+          onFocus={() => {
+            focusedRef.current = true;
+            onFieldFocus?.(cardRef.current);
+          }}
+          onBlur={() => {
+            focusedRef.current = false;
+            setShowErrors(true);
+            onFieldBlur?.(cardRef.current);
+          }}
           onSubmitEditing={apply}
           keyboardType="number-pad"
           inputMode="numeric"
