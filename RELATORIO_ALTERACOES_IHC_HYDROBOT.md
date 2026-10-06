@@ -7,15 +7,15 @@
 | Repositório | `https://github.com/YagoHM/HydroBot-App-Bluetooth` (o `origin` local aponta para `YagoHM/HydroBotBluetooth.git`, que o GitHub redireciona) |
 | Base analisada | `master` @ `a806ef9` (“Cadastro & Login”) |
 | Branch | `ihc-v3-ajustes` |
-| Versão anterior revisada | `e34fe74` (relatório), com código de `f103d1a` |
-| **Versão verificada neste relatório** | Código de **`56b1ce2`** (ajustes de interface após a gravação Android). O commit seguinte só atualiza este relatório e o `docs/IHC-V3-ajustes.md` |
+| Versões anteriores revisadas | `3662cce` (código `56b1ce2`, seção A) e `e34fe74` (código `f103d1a`, histórico) |
+| **Versão verificada neste relatório** | Código de **`51ac9a6`** (teclado, fonte ampliada e acessibilidade; seção B). A seção A descreve a versão anterior, `56b1ce2`. O commit seguinte só atualiza este relatório |
 | Escopo | Interface mobile, usabilidade, comunicabilidade e acessibilidade. O Modo de Simulação é um recurso para testar a interface; não valida o robô físico |
 
 ### Como ler as verificações
 
 | Rótulo | Significado |
 | --- | --- |
-| **Lógica** | Testes automatizados executados (`npm test`, 21 testes) sobre o simulador, a validação e a descrição da parada de emergência. |
+| **Lógica** | Testes automatizados executados (`npm test`, 33 testes nesta versão) sobre o simulador, a validação, a descrição da emergência, os cálculos de layout/teclado e a compatibilidade BLE. |
 | **Web** | Roteiro com **asserções** (`scripts/verificacao-web/verify.mjs`) executado no **build web de produção**, em Chrome headless, viewport 390×844 (e 320×640 onde indicado), Modo de Simulação. Cada critério tem resultado esperado; uma divergência marca FALHOU e o processo termina com código 1. |
 | **Código** | Apenas análise do código-fonte, sem execução. |
 | **Pendente (Android)** | Depende do aplicativo instalado; nada foi executado em Android nesta etapa. |
@@ -24,7 +24,64 @@ Nada aqui é reteste com participantes nem validação do robô físico. A execu
 
 ---
 
-## A. Ajustes desta versão (`56b1ce2`)
+## B. Ajustes desta versão (`51ac9a6`): teclado, fonte ampliada e acessibilidade
+
+Base: `3662cce` (código `56b1ce2`). Nenhum vídeo foi recebido; os problemas vêm da descrição do pedido. Ordem de execução: C1–C3, depois M1–M4 e por fim os itens condicionais.
+
+### Status por item
+
+| Item | Causa encontrada | Alteração | Arquivos | Verificação executada | Status |
+| --- | --- | --- | --- | --- | --- |
+| **C1** Teclado encobre campos em Ajustes | **Código:** com `edgeToEdgeEnabled`, o Android não redimensiona a janela; o `ScrollView` de Configurações não reservava a área do teclado nem rolava até o campo | `useKeyboardHeight` + `keyboardOverlap` (teclado menos a barra de abas) viram `paddingBottom` do conteúdo, só com o teclado aberto. Ao focar, ou quando o cartão cresce com erro ou resultado, a tela rola até o cartão inteiro (título, campo, Aplicar, mensagem). `keyboardShouldPersistTaps="handled"`, validações e aplicação no primeiro toque mantidos | `app/(tabs)/settings.tsx`, `components/ParamField.tsx`, `hooks/useKeyboardHeight.ts`, `utils/layoutMetrics.ts` | **Lógica** (6 testes): sobreposição zera ao fechar; item encoberto sobe com título visível; item maior que a área livre alinha o topo. **Web** C1a/C1b/C1c: foco em “Intensidade de Perigo” sem rolagem do navegador traz o cartão inteiro para a área visível; após “700” + Aplicar, erro e Aplicar visíveis; sem teclado, nenhum espaço extra. C1a/C1b falham na versão anterior. A web não tem teclado virtual: a compensação da altura do teclado não foi exercitada | **Corrigido**; teclado real **pendente (Android)** |
+| **C2** Cartão de Conexão cortado com fonte ampliada | **Código:** `View` com `flex: 1` e `justifyContent: 'center'`, sem rolagem: o conteúdo maior que a área transbordava para cima (sob o cabeçalho) e para baixo (sob as abas) | `ScrollView` com `flexGrow: 1` + centralização: centraliza quando cabe e rola quando não cabe. Botão Desconectar com texto que se ajusta à largura. Textos de simulação/BLE mantidos | `app/(tabs)/index.tsx` | **Web** C2a (altura útil reduzida, 390×460): o cartão rola; Desconectar inteiro acima das abas; título abaixo do cabeçalho. Falha na versão anterior (`rola: false`). C2b (fonte ×1,8, aproximação): passa, mas também passava antes | **Corrigido**; fonte máxima **pendente (Android)** |
+| **C3** Fonte alterada com o app aberto causa cortes | **Código do RN 0.81 (`node_modules/react-native`):** o `SurfaceHandler` do Fabric só remede os textos quando `layoutContext.fontSizeMultiplier` muda, e esse valor só acompanha o sistema com a feature flag `enableFontScaleChangesUpdatingLayout`, **desligada por padrão** (`ReactNativeFeatureFlagsDefaults`). Sem `fontScale` em `configChanges`, a Activity é recriada e o `MainActivity` do Expo chama `super.onCreate(null)`: a árvore React é montada de novo | Config plugin `plugins/withFontScaleRelayout.js`: (1) liga a flag com `ReactNativeFeatureFlags.dangerouslyForceOverride` após `loadReactNative`; (2) acrescenta `fontScale` a `configChanges` (preserva sessão, rota, edição e conexão); (3) no `onConfigurationChanged`, força nova medição da raiz. No JS, a barra de abas usa `useWindowDimensions().fontScale`. Sem reinício automático e sem desligar `allowFontScaling` | `plugins/withFontScaleRelayout.js`, `app.json`, `app/(tabs)/_layout.tsx` | **Executado:** `npx expo prebuild --platform android --clean` gerou o manifesto e o Kotlin esperados. **Não executado:** compilação nativa (não há Android SDK nesta máquina: `ANDROID_HOME` aponta para `D:\dev\android-sdk`, que não existe) e o comportamento no aparelho | **Implementado, não verificado** (compilação e efeito **pendentes no Android**). Se o build falhar ou o efeito não aparecer, basta remover a entrada do plugin no `app.json` para voltar ao comportamento anterior |
+| **M1** Ícone da emergência cortado | **Código:** ícone e texto em linha sem `flexShrink` no texto; com o texto mais largo que o botão, o conteúdo centralizado transbordava pelos dois lados | Ícone com `flexShrink: 0`; texto com `flexShrink: 1`, centralizado e quebrando em linhas; padding interno. Envio imediato, nome acessível e posição mantidos | `components/EmergencyStopBar.tsx` | **Web** M1 (fonte ×1,8, 360 px): ícone e texto dentro do botão. A aproximação **não reproduz** o defeito (também passa na versão anterior) | **Corrigido no código**; **pendente (Android)** |
+| **M2** Nomes das abas abreviados | **Código:** rótulo de uma palavra com largura fixa (¼ da tela) e altura fixa da barra | Altura da barra por `tabBarHeight(fontScale, inset)`; rótulo em uma linha com `adjustsFontSizeToFit` (`minimumFontScale` 0,5), reduzindo só o necessário para caber inteiro. Nomes, aba ativa e nomes acessíveis mantidos | `app/(tabs)/_layout.tsx`, `utils/layoutMetrics.ts` | **Lógica**: altura 68 dp na escala 1, 84 na escala 2, + inset. **Web** TAB: rótulos inteiros na escala 1. **Regressão encontrada e corrigida durante o teste**: o rótulo personalizado perdeu `minHeight`/`flexShrink` e voltou a ser comprimido (13 px para 16); o check TAB falhou e passou após a correção. A web não implementa `adjustsFontSizeToFit`: com fonte ×1,8 aparecem reticências na web (captura 24) | **Corrigido no código**; **pendente (Android)** |
+| **M3** TalkBack parava em ícones decorativos | Ícones (`Ionicons` são `Text`) fora de controles recebiam foco próprio | Componente `components/Icon.tsx`: o mesmo `Ionicons` com `accessible={false}`, `importantForAccessibility="no-hide-descendants"`, `accessibilityElementsHidden` e `aria-hidden`. Usado em todas as telas e componentes; botões só com ícone mantêm o nome no próprio botão | `components/Icon.tsx` + imports em 15 arquivos | **Web** M3: 0 glifos expostos (a versão anterior tinha 30). Seleção dos rádios, mensagens e foco dos modais (M1/M2/M4 do roteiro) continuam aprovados | **Corrigido**; leitura no TalkBack **pendente (Android)** |
+| **M4** Palavras fragmentadas no Monitor | **Código:** `infoItem` com `flex: 1` + `minWidth: '45%'` (e sensores com `flex: 1`) fixava a largura em ½ ou ⅓ da linha | Itens com largura pelo conteúdo (`flexBasis: 'auto'`, `flexShrink: 0`, `minWidth`, `maxWidth: '100%'`) e quebra para a linha seguinte: menos colunas quando a fonte cresce. Ordem, unidades e rótulo-valor mantidos | `app/(tabs)/monitor.tsx` | **Web** M4/M4b (fonte ×1,8): nenhuma palavra partida e valores completos. A aproximação **não reproduz** o defeito (também passa antes) | **Corrigido no código**; **pendente (Android)** |
+| Condicional: demora até “Não conectado” ao sair da simulação | **Código:** `toggleMockMode` encerra a sessão e muda o modo antes de gravar a preferência; não há operação pendente que justifique um indicador | Nenhuma | — | Na web não é possível sair da simulação | **Não reproduzido**; observar no APK |
+| Condicional: busca BLE sem demonstrar compatibilidade | Todos os dispositivos com nome eram listados da mesma forma | `classifyDiscovery` usa só os identificadores existentes (nome “HydroBot” e UUID de serviço): “Anuncia o serviço de dados usado pelo HydroBot (compatibilidade confirmada só ao conectar)”, “Nome indica HydroBot, mas o serviço não foi anunciado” ou “Compatibilidade com o HydroBot não verificada”; ordenação por indícios. Ao conectar, o app confere se o serviço existe e, se não, encerra com mensagem clara. O UUID é o Nordic UART padrão, por isso nenhum rótulo diz “validado” | `services/hydroBotProtocol.ts`, `services/bleTransport.ts`, `context/BluetoothContext.tsx`, `app/(tabs)/index.tsx` | **Lógica** (4 testes), incluindo que nenhum rótulo afirma validação. Busca e conexão BLE reais **não executadas** | **Corrigido no código**; **pendente (Android + robô)** |
+| Condicional: emergência sem conexão repetia a causa | Cada ação mostrava “falhou — Não conectado…” | Quando todas as ações falham pela mesma causa, a causa aparece uma vez (“Nenhum comando de parada foi enviado: …”) e as ações são listadas como “Não enviados”. Falhas com causas diferentes e falha parcial mantêm o resultado por ação | `services/emergency.ts` | **Lógica** (2 testes novos). **Web** EM12/EM13: causa dita uma vez, sem sucesso; falham na versão anterior (3 repetições) | **Corrigido** |
+| Direcionais com TalkBack | Sem defeito confirmado | Nenhuma | — | — | **Pendente (Android)**: toque duplo em uma direção para iniciar e em “Parar movimento” para encerrar; sem TalkBack, pressionar e soltar |
+
+### Verificações executadas
+
+| Comando | Resultado |
+| --- | --- |
+| `npx tsc --noEmit` | Saída 0 |
+| `npm run lint` | Saída 0, sem avisos |
+| `npm test` | 33 testes, 33 aprovados (12 novos: layout/teclado, compatibilidade BLE, emergência sem conexão) |
+| `npx expo export --platform web --clear` | Saída 0; bundle sem `react-native-ble-plx` |
+| `node scripts/verificacao-web/verify.mjs docs/evidencias/verificacao http://localhost:8090` | **66 critérios, 66 aprovados**, console sem erros (`saida-verificacao.txt`, `verificacao-web.json`) |
+| Controle negativo: mesmo roteiro contra o build de `56b1ce2` | 59 aprovados, 7 falhas (EM12, EM13, M3, C1a, C1b, C1c, C2a): os critérios novos discriminam. M1, M4, C2b e TAB passam nas duas versões, logo não servem de prova para esses defeitos (`controle-negativo-56b1ce2.txt`) |
+| `npx expo prebuild --platform android --clean --no-install` | Saída 0; `configChanges` com `fontScale`, flag no `MainApplication.kt` e `onConfigurationChanged` no `MainActivity.kt` gerados |
+| Compilação Android / APK | **Não executada** (sem Android SDK nesta máquina) |
+
+**Ajustes no ambiente de teste (não no app):** o Chrome headless só dispara `focus`/`blur` com `Emulation.setFocusEmulationEnabled`, agora ligado em `cdp.mjs`. O primeiro resultado negativo do C1 era desse ambiente: depois de ligar a emulação, a rolagem medida (1425) bateu com a calculada pela função testada. O build da versão anterior para o controle negativo precisou de `--clear`, porque o cache do Metro guardava o caminho de uma cópia temporária antiga.
+
+**Limites da aproximação web de fonte ampliada:** o roteiro multiplica o tamanho dos textos na página. A web não aplica `maxFontSizeMultiplier` (limite de 1,4× no cabeçalho) nem `adjustsFontSizeToFit` (rótulos das abas). Por isso, na captura 24, o indicador sobrepõe “Reiniciar” e as abas aparecem com reticências. Isso não representa o Android e precisa ser conferido no aparelho.
+
+### Capturas desta versão (`docs/evidencias/verificacao/`)
+
+`21-c1-campo-perigo-visivel`, `22-c2-conexao-area-reduzida`, `23-m1-emergencia-fonte-ampliada`, `24-m4-monitor-fonte-ampliada`, `25-c2-conexao-fonte-ampliada`, `20-emergencia-sem-conexao` (causa resumida), além das capturas 01–19 e 26 da seção A, regeradas nesta versão. O GIF `docs/evidencias/roteiro-verificacao-web.gif` é uma sequência das capturas, não uma gravação de vídeo.
+
+### Roteiro curto para o próximo APK
+
+Gere com `eas build --platform android --profile preview`. O EAS executa o prebuild e aplica o plugin; se a compilação falhar no passo do `MainApplication`/`MainActivity`, registre o erro.
+
+1. **Teclado (C1):** em Ajustes, toque em Limiar de Detecção e em Intensidade de Perigo, com fonte normal e máxima: título, campo, Aplicar e erro acima do teclado ou alcançáveis por rolagem. Digite 40 e toque uma vez em Aplicar (“Em vigor: 40”). Digite 700 (erro; o valor anterior continua em vigor). Feche o teclado: nenhum espaço vazio no fim.
+2. **Conexão (C2):** com fonte máxima e simulação conectada, role o cartão; Desconectar inteiro e acionável acima das abas; título fora do cabeçalho.
+3. **Mudança de fonte com o app aberto (C3):** com o app em Ajustes e um valor digitado, mude a fonte normal → máxima → normal nas configurações do Android e volte. Os textos não devem cortar; sessão, aba, valor digitado e conexão simulada devem permanecer.
+4. **Emergência (M1):** com fonte máxima, ícone e “PARADA DE EMERGÊNCIA” inteiros; o toque abre o modal; confira também “ENVIANDO PARADA…”. Sem conexão: causa dita uma vez.
+5. **Abas (M2):** com fonte máxima, “Conexão”, “Controle”, “Monitor” e “Ajustes” completos (podem aparecer menores), acima da barra do Android em navegação por gestos e por três botões.
+6. **TalkBack (M3):** percorrer as quatro abas: sem paradas em ícones soltos; rádios com “selecionado”; modais com foco no título e retorno ao botão de origem; direcionais com toque duplo e “Parar movimento”.
+7. **Monitor (M4):** com fonte máxima, “Velocidade”, “PWM Mín/Máx” e os nomes dos sensores sem palavras partidas; valores completos.
+8. **BLE (condicional):** busca mostra os indícios de compatibilidade; conectar a um dispositivo sem o serviço do HydroBot deve falhar com mensagem clara; sair da simulação para BLE e observar o tempo até “Não conectado”.
+9. **Regressão:** login, conexão automática da simulação, seleção de água, validações, cancelamento do fogo, limpeza de mensagens entre sessões e modal único de emergência.
+
+---
+
+## A. Ajustes da versão anterior (`56b1ce2`)
 
 | # | Problema | Alteração | Arquivos | Verificação e resultado | Pendência no APK |
 | --- | --- | --- | --- | --- | --- |
@@ -46,8 +103,8 @@ Nada aqui é reteste com participantes nem validação do robô físico. A execu
 | `npm run lint` | Saída 0, sem erros nem avisos |
 | `npm test` | 21 testes, 21 aprovados (6 novos sobre a emergência) |
 | `npm run build:web` | Saída 0 |
-| `node scripts/verificacao-web/verify.mjs docs/evidencias/verificacao http://localhost:8090` | **57 critérios, 57 aprovados**, console sem erros (`docs/evidencias/verificacao/verificacao-web.json` e `saida-verificacao.txt`) |
-| Controle negativo: mesmo roteiro contra o build de `f103d1a` | 34 falhas antes da interrupção (indicador, aba “Ajustes”, água, modal de emergência, selo dos sensores, rolagem do login e do cadastro), como esperado; os checks de preservação (I5, M1, I3, T1, K2…) passaram nas duas versões (`controle-negativo-f103d1a.txt`) |
+| `node scripts/verificacao-web/verify.mjs …` (na versão `56b1ce2`) | **57 critérios, 57 aprovados** naquela versão; os arquivos em `docs/evidencias/verificacao/` foram regerados na seção B |
+| Controle negativo: mesmo roteiro contra o build de `f103d1a` | 34 falhas antes da interrupção (indicador, aba “Ajustes”, água, modal de emergência, selo dos sensores, rolagem do login e do cadastro), como esperado; os checks de preservação passaram nas duas versões (arquivo `controle-negativo-f103d1a.txt`, disponível no commit `3662cce`) |
 | Android | **Não executado** |
 
 As dependências não mudaram desde `f103d1a` (SDK 54; `expo-doctor` 18/18 naquela versão).
@@ -224,7 +281,7 @@ Para depurar no aparelho com o Metro, use um development build:
 eas build --platform android --profile development
 ```
 
-O perfil `production` gera AAB, voltado à loja, e não é necessário para esta revisão. Uma alternativa local, com o SDK já presente em `D:\dev\android-sdk`, é `npx expo prebuild --clean` seguido de `npx expo run:android --variant release` (não executado).
+O perfil `production` gera AAB, voltado à loja, e não é necessário para esta revisão. Uma alternativa local é `npx expo prebuild --clean` seguido de `npx expo run:android --variant release` (não executado). **Correção:** versões anteriores deste relatório diziam que o Android SDK estava presente em `D:\dev\android-sdk`. A variável `ANDROID_HOME` aponta para esse caminho, mas a pasta não existe nesta máquina.
 
 ### Possíveis impedimentos
 
